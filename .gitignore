@@ -1,0 +1,33 @@
+# =========================
+# Data Lake Layers
+# =========================
+data/bronze/
+data/silver/
+data/gold/
+
+# Parquet files
+*.parquet
+
+# =========================
+# Virtual Environment
+# =========================
+venv/
+.env/
+
+# =========================
+# Python Cache
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+
+# =========================
+# Jupyter (if used)
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
