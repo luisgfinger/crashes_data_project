@@ -1,0 +1,44 @@
+@startuml
+title Crashes Data Project - Silver v1 Pipeline (Activity Diagram)
+
+start
+
+:Load config paths;
+:Find latest Bronze CSV;
+
+if (CSV found?) then (yes)
+  :Read CSV into DataFrame;
+
+  :Select required columns;
+  :Rename/standardize columns;
+  :Parse/convert data types;
+
+  :Build crash_datetime;
+  :Derive crash_year;
+
+  :Apply data quality rules (DQ);
+
+ if (Has invalid rows?) then (yes)
+
+  if (Drop invalid rows?) then (yes)
+    :Drop invalid rows;
+  else (no)
+    :Send invalid rows to Quarantine;
+    :Write Quarantine dataset;
+  endif
+
+else (no)
+  :All rows valid;
+endif
+
+  :Write Silver dataset (partitioned by crash_year);
+  :Generate run metrics;
+  :Write metrics CSV;
+
+  stop
+else (no)
+  :Fail with "No input file found";
+  stop
+endif
+
+@enduml

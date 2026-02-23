@@ -1,0 +1,39 @@
+@startuml
+
+title Crashes Data Project - Component Diagram
+
+package "Entry Point" {
+  [run.py] as run
+}
+
+package "Pipelines" {
+  [silver_v1.py] as silver
+}
+
+package "Config" {
+  [config.py] as config
+}
+
+package "Utils" {
+  [io_utils.py] as io
+  [dq.py] as dq
+}
+
+package "Data (Artifacts)" {
+  [Bronze CSV] as bronze
+  [Silver Parquet\n(partitioned by crash_year)] as silver_data
+  [Quarantine] as quarantine
+  [Metrics CSV] as metrics
+}
+
+run --> silver : calls main()
+silver --> config : reads paths/settings
+silver --> io : reusable functions
+silver --> dq : data quality rules
+
+bronze --> silver : input
+silver --> silver_data : output
+silver --> quarantine : invalid rows
+silver --> metrics : run metrics
+
+@enduml
