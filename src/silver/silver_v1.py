@@ -10,7 +10,7 @@ from src.config import (
     SILVER_QUARANTINE_VEHICLES_PATH,
     METRICS_VEHICLES_PATH,
 )
-from src.utils.io_utils import find_latest_csv, _assert_columns_exist, _normalize_time_to_hhmm
+from src.utils.io_utils import find_latest_csv, _assert_columns_exist, _normalize_time_to_hhmm, _rmtree_force, _write_parquet_overwrite
 from src.utils.dq import apply_quality_rules_vehicles
 
 
@@ -47,34 +47,6 @@ RENAME_MAP = {
     "CONTRIBUTING_FACTOR_1": "contributing_factor_1",
     "CONTRIBUTING_FACTOR_2": "contributing_factor_2",
 }
-
-
-def _rmtree_force(path: Path) -> None:
-    """Remove folder on Windows even if files are readonly."""
-    def onerror(func, p, exc_info):
-        # remove readonly and retry
-        os.chmod(p, stat.S_IWRITE)
-        func(p)
-
-    shutil.rmtree(path, onerror=onerror)
-
-def _write_parquet_overwrite(path, df: pd.DataFrame, partition_cols=None) -> None:
-    path = Path(path)
-
-    # If something exists there (file or folder), remove it
-    if path.exists():
-        if path.is_file():
-            path.unlink()
-        else:
-            _rmtree_force(path)
-
-    path.mkdir(parents=True, exist_ok=True)
-
-    # If no partitioning, ALWAYS write to a file inside the folder
-    if partition_cols:
-        df.to_parquet(path, engine="pyarrow", index=False, partition_cols=partition_cols)
-    else:
-        df.to_parquet(path / "data.parquet", engine="pyarrow", index=False)
 
 
 def _write_metrics_csv(metrics_path, metrics_summary: pd.DataFrame, metrics_by_reason: pd.DataFrame) -> None:
