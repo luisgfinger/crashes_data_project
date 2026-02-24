@@ -56,6 +56,76 @@ Silver (Parsed, Typed, Partitioned Parquet)
 Gold (Aggregations and Analytics - upcoming)
 ```
 
+---
+
+## UML Documentation
+
+To improve architectural clarity and formalize the system design, 
+UML diagrams were created using **PlantUML**.
+
+These diagrams provide a structured visualization of both the system 
+architecture and the execution flow of the Silver pipeline.
+
+They are located in:
+docs/uml/
+
+---
+
+### Component Diagram
+
+The Component Diagram represents the high-level architecture of the project.
+
+It illustrates:
+
+- Entry point (`run.py`)
+- Silver pipeline module
+- Configuration layer (`config.py`)
+- Utility modules (`io_utils.py`, `dq.py`)
+- Data artifacts (Bronze, Silver, Quarantine, Metrics)
+
+This diagram documents module responsibilities, dependencies, 
+and data flow between layers.
+
+![Component Diagram](docs/uml/out/component.png)
+
+---
+
+### Activity Diagram – Silver v1
+
+The Activity Diagram documents the end-to-end execution flow 
+of the Silver layer.
+
+It represents:
+
+- Bronze file discovery
+- Schema validation
+- Column selection and normalization
+- Type parsing and derived column creation
+- Data quality validation
+- Drop vs. Quarantine decision logic
+- Partitioned Parquet writing
+- Metrics generation
+
+This ensures the pipeline logic is explicit, traceable,
+and aligned with data engineering best practices.
+
+![Component Diagram](docs/uml/out/silver/silver_v1.activity.png)
+
+---
+
+### Why UML?
+
+Although many data engineering projects rely solely on code,
+formal architectural documentation:
+
+- Improves maintainability
+- Reduces ambiguity
+- Facilitates onboarding
+- Supports scalability
+- Elevates the project from exploratory analysis to production-oriented design
+
+The UML diagrams are version-controlled alongside the codebase 
+and should be updated whenever architectural changes occur.
 ### Data Layers
 
 ### Bronze
