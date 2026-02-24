@@ -109,7 +109,7 @@ It represents:
 This ensures the pipeline logic is explicit, traceable,
 and aligned with data engineering best practices.
 
-![Silver V1 Acitivity Diagram](out/docs/uml/silver_v1.activity/silver_v1.activity.png)
+![Silver V1 Acitivity Diagram](out/docs/uml/silver/silver_v1.activity/silver_v1.activity.png)
 
 ---
 
