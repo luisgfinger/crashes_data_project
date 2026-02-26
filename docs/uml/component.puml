@@ -20,10 +20,10 @@ package "Utils" {
 }
 
 package "Data (Artifacts)" {
-  [Bronze CSV] as bronze
+  [Bronze Data(CSV Files)] as bronze
   [Silver Parquet\n(partitioned by crash_year)] as silver_data
   [Quarantine] as quarantine
-  [Metrics CSV] as metrics
+  [Metrics(per run_date)] as metrics
 }
 
 run --> silver : calls main()

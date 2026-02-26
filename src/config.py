@@ -33,4 +33,4 @@ SILVER_METRICS_VEHICLES_PATH = METRICS_DIR / "silver" / DATASET_NAME / SILVER_VE
 # Processing Config
 # =====================
 
-PARTITION_COLUMN = "crash_year"
+PARTITION_COLUMN = "run_date"

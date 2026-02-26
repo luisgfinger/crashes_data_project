@@ -1,6 +1,0 @@
-run_date,metric,value,reason,count
-2026-02-22,total_rows_read,568584,,
-2026-02-22,total_clean,568205,,
-2026-02-22,total_quarantine,379,,
-2026-02-22,total_discard,0,,
-2026-02-22,dq_reason_count,379,invalid_vehicle_year_range,379
