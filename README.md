@@ -86,8 +86,6 @@ It illustrates:
 This diagram documents module responsibilities, dependencies, 
 and data flow between layers.
 
-![Component Diagram](out/docs/uml/component/component.png)
-
 ---
 
 ### Activity Diagram – Silver v1
@@ -108,8 +106,6 @@ It represents:
 
 This ensures the pipeline logic is explicit, traceable,
 and aligned with data engineering best practices.
-
-![Silver V1 Acitivity Diagram](out/docs/uml/silver/silver_v1.activity/silver_v1.activity.png)
 
 ---
 
@@ -137,9 +133,6 @@ and should be updated whenever architectural changes occur.
 * Schema validation enforced
 * Column selection based on a defined Data Dictionary
 * snake_case column standardization
-* Safe type parsing (dates, integers, nullable types)
-* Derived `crash_datetime`
-* Derived `crash_year`
 * Partitioned Parquet output
 
 ### Gold (Planned)
@@ -156,29 +149,38 @@ crashes-data-project/
 │
 ├── data/
 │   ├── bronze/
-│   │   └── vehicles/
-│   │       └── full/
-│   │           └── vehicles_raw_YYYYMMDD.csv
+│   │   └── vehicles/full/
 │   │
 │   ├── silver/
-│   │   └── vehicles/
-│   │       └── v1/
-│   │           ├── crash_year=2023/
-│   │           ├── crash_year=2024/
-│   │           ├── crash_year=2025/
-│   │           └── crash_year=2026/
+│   │   └── vehicles/v1/
+│   │       └── run_date=YYYY-MM-DD/
 │   │
-│   └── gold/
+│   ├── silver_quarantine/
+│   │   └── vehicles/v1/run_date=YYYY-MM-DD/
+│   │
+│   ├── metrics/
+│   │   └── silver/vehicles/v1/run_date=YYYY-MM-DD/
+│   │
+│   └── gold/ (planned)
 │
 ├── src/
 │   ├── config.py
 │   ├── silver/
 │   │   └── silver_v1.py
+│   │
+│   ├── dq/
+│   │   └── silver/vehicles/v1/dq.py
+│   │
+│   ├── metrics/
+│   │   └── metrics.py
+│   │
 │   └── utils/
 │       └── io_utils.py
 │
-├── requirements.txt
-└── README.md
+├── docs/
+├── notebooks/
+├── run.py
+└── requirements.txt
 ```
 
 ---
@@ -198,21 +200,18 @@ AI tools were used as AI pair programming assistants to accelerate development w
 
 ## Silver Layer Processing Steps
 
-1. Locate the latest CSV file in the Bronze layer
-2. Validate required schema columns
-3. Select only target columns defined in the Data Dictionary
-4. Standardize column names to snake_case
+1. Detect latest Bronze CSV
+2. Validate required schema
+3. Select vehicle-specific columns
+4. Standardize to snake_case
 5. Trim string fields
-6. Parse:
-   * `crash_date` → Date
-   * `vehicle_year` → Nullable Integer
-7. Normalize `crash_time`
-8. Create derived column:
-   * `crash_datetime`
-9. Create partition column:
-   * `crash_year`
-10. Drop rows with invalid partition key
-11. Write partitioned Parquet files using PyArrow
+6. Cast types safely (unique_id, vehicle_year)
+7. Apply DQ rules
+8. Generate metrics
+9. Write:
+ * Clean dataset (partitioned by run_date)
+ * Quarantine dataset
+ * Metrics CSV
 
 ---
 
@@ -274,8 +273,6 @@ Na camada Silver (v1), o projeto realiza:
 * Seleção de colunas com base em um Data Dictionary
 * Padronização de nomes (snake_case)
 * Parsing seguro de datas e tipos numéricos
-* Criação da coluna derivada `crash_datetime`
-* Criação da coluna de partição `crash_year`
 * Escrita em formato Parquet particionado por ano
 
 A granularidade definida é:
