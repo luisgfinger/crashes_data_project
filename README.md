@@ -86,7 +86,7 @@ It illustrates:
 This diagram documents module responsibilities, dependencies, 
 and data flow between layers.
 
-![Component Diagram](docs/uml/out/component.png)
+![Component Diagram](out/docs/uml/component/component.png)
 
 ---
 
@@ -109,7 +109,7 @@ It represents:
 This ensures the pipeline logic is explicit, traceable,
 and aligned with data engineering best practices.
 
-![Component Diagram](docs/uml/out/silver/silver_v1.activity.png)
+![Silver V1 Acitivity Diagram](out/docs/uml/silver/silver_v1.activity/silver_v1.activity.png)
 
 ---
 
