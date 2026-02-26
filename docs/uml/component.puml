@@ -1,5 +1,4 @@
 @startuml
-
 title Crashes Data Project - Component Diagram
 
 package "Entry Point" {
@@ -7,7 +6,7 @@ package "Entry Point" {
 }
 
 package "Pipelines" {
-  [silver_v1.py] as silver
+  [silver_v1.py\n(vehicles)] as silver_vehicles
 }
 
 package "Config" {
@@ -16,24 +15,32 @@ package "Config" {
 
 package "Utils" {
   [io_utils.py] as io
-  [dq.py] as dq
+}
+
+package "DQ (Rules)" {
+  [dq.py\n(silver/vehicles/v1)] as dq_vehicles
+}
+
+package "Metrics" {
+  [metrics.py] as metrics_mod
 }
 
 package "Data (Artifacts)" {
-  [Bronze Data(CSV Files)] as bronze
-  [Silver Parquet\n(partitioned by crash_year)] as silver_data
-  [Quarantine] as quarantine
-  [Metrics(per run_date)] as metrics
+  [Bronze Data\n(CSV Files)] as bronze
+  [Silver Vehicles Parquet\n(partitioned by run_date)] as silver_data
+  [Silver Quarantine Vehicles\n(per run_date folder)] as quarantine
+  [Metrics CSV\n(per run_date folder)] as metrics_out
 }
 
-run --> silver : calls main()
-silver --> config : reads paths/settings
-silver --> io : reusable functions
-silver --> dq : data quality rules
+run --> silver_vehicles : calls main()
+silver_vehicles --> config : reads paths/settings
+silver_vehicles --> io : find/read/write helpers
+silver_vehicles --> dq_vehicles : applies DQ rules
+silver_vehicles --> metrics_mod : writes metrics.csv
 
-bronze --> silver : input
-silver --> silver_data : output
-silver --> quarantine : invalid rows
-silver --> metrics : run metrics
+bronze --> silver_vehicles : input
+silver_vehicles --> silver_data : output (clean)
+silver_vehicles --> quarantine : output (quarantine)
+silver_vehicles --> metrics_out : output (metrics)
 
 @enduml

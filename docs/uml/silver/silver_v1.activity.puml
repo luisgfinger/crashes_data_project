@@ -1,5 +1,5 @@
 @startuml
-title Crashes Data Project - Silver v1 Pipeline (Activity Diagram)
+title Crashes Data Project - Silver Vehicles v1 Pipeline (Activity Diagram)
 
 start
 
@@ -7,33 +7,34 @@ start
 :Find latest Bronze CSV;
 
 if (CSV found?) then (yes)
-  :Read CSV into DataFrame;
+  :Read CSV into DataFrame (dtype=string);
 
-  :Select required columns;
-  :Rename/standardize columns;
-  :Parse/convert data types;
+  :Assert required columns exist;
+  :Select vehicle entity columns;
+  :Rename columns to snake_case;
+  :Trim string fields;
 
-  :Build crash_datetime;
-  :Derive crash_year;
-
+  :Cast types (unique_id, vehicle_year);
   :Apply data quality rules (DQ);
+  note right
+    DQ produces:
+    - clean_df
+    - quarantine_df
+    - discard_df (optional)
+    - metrics_summary
+    - metrics_by_reason
+    - run_date
+  end note
 
- if (Has invalid rows?) then (yes)
+  :Write Silver CLEAN parquet\n(partitioned by run_date);
 
-  if (Drop invalid rows?) then (yes)
-    :Drop invalid rows;
+  if (Has quarantine rows?) then (yes)
+    :Write QUARANTINE parquet\n(to run_date folder);
   else (no)
-    :Send invalid rows to Quarantine;
-    :Write Quarantine dataset;
+    :Skip QUARANTINE write;
   endif
 
-else (no)
-  :All rows valid;
-endif
-
-  :Write Silver dataset (partitioned by crash_year);
-  :Generate run metrics;
-  :Write metrics CSV;
+  :Write METRICS CSV\n(to run_date folder);
 
   stop
 else (no)
