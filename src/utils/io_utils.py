@@ -24,14 +24,22 @@ def _normalize_time_to_hhmm(s: pd.Series) -> pd.Series:
         if not t:
             return pd.NA
         parts = t.split(":")
-        if len(parts) < 2:
+        if len(parts) not in (2, 3):
             return pd.NA
-        hh = parts[0].zfill(2)
-        mm = parts[1].zfill(2)
-        if len(parts) >= 3:
-            ss = parts[2].zfill(2)
-            return f"{hh}:{mm}:{ss}"
-        return f"{hh}:{mm}"
+        if any(p.strip() == "" for p in parts):
+            return pd.NA
+        if not all(p.isdigit() for p in parts):
+            return pd.NA
+        hh = int(parts[0])
+        mm = int(parts[1])
+        if not (0 <= hh <= 23 and 0 <= mm <= 59):
+            return pd.NA
+        if len(parts) == 3:
+            ss = int(parts[2])
+            if not (0 <= ss <= 59):
+                return pd.NA
+            return f"{hh:02d}:{mm:02d}:{ss:02d}"
+        return f"{hh:02d}:{mm:02d}"
 
     return s.apply(fix).astype("string")
 
