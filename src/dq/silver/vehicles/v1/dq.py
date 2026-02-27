@@ -34,13 +34,19 @@ def apply_quality_rules_vehicles(df: pd.DataFrame, run_date_str: str | None = No
     if "vehicle_year" in out.columns:
         current_year = date.today().year
         vy = out["vehicle_year"]
-        mask = vy.notna() & ((vy < 1900) | (vy > current_year + 1))
+        mask = vy.isna() | (vy < 1900) | (vy > current_year + 1)
         _append_reason(out, mask, "invalid_vehicle_year_range")
+    else:
+        mask = pd.Series(True, index=out.index)
+        _append_reason(out, mask, "No_vehicle_year")
 
     discard_mask = pd.Series([False] * len(out), index=out.index)
 
-    if "unique_id" in out.columns:
-        discard_mask = out["unique_id"].isna()
+    if "unique_id" in out.columns and "collision_id" in out.columns:
+        discard_mask = (
+            out["unique_id"].isna() |
+            out["collision_id"].isna()
+        )
 
     if discard_mask.any():
         _append_reason(out, discard_mask, "discard_missing_id")

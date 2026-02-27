@@ -1,19 +1,24 @@
 import pandas as pd
 from datetime import date
 
-from src.config import (
-    BRONZE_VEHICLES_PATH,
-    SILVER_VEHICLES_PATH,
-    PARTITION_COLUMN,
-    SILVER_QUARANTINE_VEHICLES_PATH,
-    SILVER_METRICS_VEHICLES_PATH,
-)
+from src.config import bronze_path, silver_path, quarantine_path, silver_metrics_path
+
+DATASET = "vehicles"
+VERSION = "v1"
+PARTITION_COL = "run_date"
+
+BRONZE_VEHICLES_PATH = bronze_path(DATASET, "full")
+SILVER_VEHICLES_PATH = silver_path(DATASET, VERSION)
+SILVER_QUARANTINE_VEHICLES_PATH = quarantine_path(DATASET, VERSION)
+SILVER_METRICS_VEHICLES_PATH = silver_metrics_path(DATASET, VERSION)
+
 from src.utils.io_utils import find_latest_csv, _assert_columns_exist, _write_parquet_overwrite
 from src.dq.silver.vehicles.v1.dq import apply_quality_rules_vehicles
 from src.metrics.metrics import _write_metrics_csv
 
 TARGET_COLUMNS = [
     "UNIQUE_ID",
+    "COLLISION_ID",
     "VEHICLE_TYPE",
     "VEHICLE_MAKE",
     "VEHICLE_YEAR",
@@ -21,6 +26,7 @@ TARGET_COLUMNS = [
 
 RENAME_MAP = {
     "UNIQUE_ID": "unique_id",
+    "COLLISION_ID": "collision_id",
     "VEHICLE_TYPE": "vehicle_type",
     "VEHICLE_MAKE": "vehicle_make",
     "VEHICLE_YEAR": "vehicle_year",
@@ -59,7 +65,7 @@ def main():
     _write_parquet_overwrite(
         SILVER_VEHICLES_PATH,
         dq.clean_df,
-        partition_cols=[PARTITION_COLUMN],
+        partition_cols=[PARTITION_COL],
     )
     print(f"Silver CLEAN written to: {SILVER_VEHICLES_PATH}")
 
