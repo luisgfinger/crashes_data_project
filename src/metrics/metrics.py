@@ -1,10 +1,11 @@
-import shutil
 import pandas as pd
+
+from src.utils.io_utils import _rmtree_force
 
 def _write_metrics_csv(metrics_path, metrics_summary: pd.DataFrame, metrics_by_reason: pd.DataFrame) -> None:
 
     if metrics_path.exists():
-        shutil.rmtree(metrics_path)
+        _rmtree_force(metrics_path)
     metrics_path.mkdir(parents=True, exist_ok=True)
 
     summary_csv = metrics_summary.copy()
