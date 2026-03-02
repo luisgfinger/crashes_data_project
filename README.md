@@ -1,150 +1,93 @@
-# Motor Vehicle Collisions – Vehicles Data Pipeline
+# Motor Vehicle Collisions – Data Engineering Pipeline
 
-This project implements a structured data engineering pipeline using the NYC Motor Vehicle Collisions – Vehicles dataset.
+This project implements a modular, production-oriented data engineering pipeline using the NYC Motor Vehicle Collisions datasets.
 
-The goal is to move beyond exploratory notebooks and design a reproducible, scalable, and layered data architecture following modern data engineering principles.
+The goal is to move beyond exploratory notebooks and design a reproducible, scalable, and layered data architecture following modern data engineering best practices.
 
 ---
+
+# 🇺🇸 English Version (Versão em PT-BR mais abaixo)
 
 ## Project Overview
 
-This pipeline processes raw CSV data (Bronze layer) and transforms it into a structured, typed, and partitioned Parquet dataset (Silver layer).
+This repository implements a layered data lake architecture:
 
-The project focuses on:
+Bronze (Raw CSV)  
+        ↓  
+Silver (Validated, Typed, Partitioned Parquet)  
+        ↓  
+Gold (Aggregations & Analytics – Planned)
 
-* Data contracts (schema validation)
-* Clear dataset granularity (1 row = 1 vehicle)
-* Layered architecture (Bronze → Silver → Gold)
-* Partitioning strategy for performance
-* Reproducible and maintainable pipelines
-* AI-augmented development workflow
+The pipeline is fully modular and CLI-driven, allowing multiple datasets and versions to coexist under a unified architecture.
+
+### Key Design Principles
+
+- Schema contracts and explicit column validation
+- Dataset-level modular pipelines (vehicles, crashes)
+- Layered architecture (Bronze → Silver → Gold)
+- Partitioning strategy for performance and scalability
+- Reproducible execution via CLI
+- Variant-based output environments (full, incremental, backfill)
+- AI-augmented development workflow
 
 ---
 
-## Dataset
+## Supported Silver Pipelines
 
-The raw dataset is **not included** in this repository due to GitHub file size limitations.
+| Dataset  | Version | Description |
+|----------|----------|-------------|
+| vehicles | v1 | Vehicle-level dataset (1 row = 1 vehicle) |
+| crashes  | v1 | Crash-level dataset (1 row = 1 collision event) |
 
-You can download the dataset from NYC Open Data:
+Each dataset has its own independent Silver pipeline module.
+
+---
+
+## CLI Execution
+
+The project uses a structured CLI with enum-based validation and registry-based dispatch.
+
+### Run Silver pipeline
+
+python -m src.cli silver run -d vehicles -v v1
+
+### Available options
+
+-d, --dataset     vehicles | crashes  
+-v, --version     v1  
+--variant         full | incremental | backfill  
+--run-date        YYYY-MM-DD  
+--dry-run         simulate execution without writing output  
+
+### Example
+
+python -m src.cli silver run -d crashes -v v1 --variant incremental --run-date 2026-03-01
+
+---
+
+## Dataset Sources
+
+Raw datasets are NOT included in this repository due to GitHub size limits.
+
+Download from NYC Open Data:
 
 Motor Vehicle Collisions – Vehicles  
 https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/h9gi-nx95
 
-After downloading the CSV file, place it inside:
+After downloading:
 
-```
 data/bronze/vehicles/full/
-```
 
 Example:
 
-```
 data/bronze/vehicles/full/vehicles_raw_YYYYMMDD.csv
-```
 
-The pipeline automatically detects the most recent CSV file in this directory.
+The pipeline automatically detects the most recent file.
 
 ---
 
 ## Architecture
 
-```
-Bronze (Raw CSV)
-        ↓
-Silver (Parsed, Typed, Partitioned Parquet)
-        ↓
-Gold (Aggregations and Analytics - upcoming)
-```
-
----
-
-## UML Documentation
-
-To improve architectural clarity and formalize the system design, 
-UML diagrams were created using **PlantUML**.
-
-These diagrams provide a structured visualization of both the system 
-architecture and the execution flow of the Silver pipeline.
-
-They are located in:
-docs/uml/
-
----
-
-### Component Diagram
-
-The Component Diagram represents the high-level architecture of the project.
-
-It illustrates:
-
-- Entry point (`run.py`)
-- Silver pipeline module
-- Configuration layer (`config.py`)
-- Utility modules (`io_utils.py`, `dq.py`)
-- Data artifacts (Bronze, Silver, Quarantine, Metrics)
-
-This diagram documents module responsibilities, dependencies, 
-and data flow between layers.
-
----
-
-### Activity Diagram – Silver v1
-
-The Activity Diagram documents the end-to-end execution flow 
-of the Silver layer.
-
-It represents:
-
-- Bronze file discovery
-- Schema validation
-- Column selection and normalization
-- Type parsing and derived column creation
-- Data quality validation
-- Drop vs. Quarantine decision logic
-- Partitioned Parquet writing
-- Metrics generation
-
-This ensures the pipeline logic is explicit, traceable,
-and aligned with data engineering best practices.
-
----
-
-### Why UML?
-
-Although many data engineering projects rely solely on code,
-formal architectural documentation:
-
-- Improves maintainability
-- Reduces ambiguity
-- Facilitates onboarding
-- Supports scalability
-- Elevates the project from exploratory analysis to production-oriented design
-
-The UML diagrams are version-controlled alongside the codebase 
-and should be updated whenever architectural changes occur.
-### Data Layers
-
-### Bronze
-* Raw CSV files
-* No transformations applied
-* Immutable ingestion layer
-
-### Silver (v1)
-* Schema validation enforced
-* Column selection based on a defined Data Dictionary
-* snake_case column standardization
-* Partitioned Parquet output
-
-### Gold (Planned)
-* Aggregations
-* Analytics-ready datasets
-* Business-level metrics
-
----
-
-## Project Structure
-
-```
 crashes-data-project/
 │
 ├── data/
@@ -152,24 +95,28 @@ crashes-data-project/
 │   │   └── vehicles/full/
 │   │
 │   ├── silver/
-│   │   └── vehicles/v1/
+│   │   └── <dataset>/<version>/<variant>/
 │   │       └── run_date=YYYY-MM-DD/
 │   │
 │   ├── silver_quarantine/
-│   │   └── vehicles/v1/run_date=YYYY-MM-DD/
+│   │   └── <dataset>/<version>/<variant>/
 │   │
 │   ├── metrics/
-│   │   └── silver/vehicles/v1/run_date=YYYY-MM-DD/
+│   │   └── silver/<dataset>/<version>/<variant>/
 │   │
 │   └── gold/ (planned)
 │
 ├── src/
+│   ├── cli.py
 │   ├── config.py
 │   ├── silver/
-│   │   └── silver_v1.py
+│   │   ├── vehicles/v1/run.py
+│   │   └── crashes/v1/run.py
 │   │
 │   ├── dq/
-│   │   └── silver/vehicles/v1/dq.py
+│   │   └── silver/
+│   │       ├── vehicles/v1/dq.py
+│   │       └── crashes/v1/dq.py
 │   │
 │   ├── metrics/
 │   │   └── metrics.py
@@ -177,108 +124,207 @@ crashes-data-project/
 │   └── utils/
 │       └── io_utils.py
 │
-├── docs/
+├── docs/uml/
 ├── notebooks/
-├── run.py
 └── requirements.txt
-```
 
 ---
 
-## Technologies Used
+## Silver Layer – Processing Logic
 
-* Python 3.10+
-* Pandas
-* PyArrow
-* Virtual Environment (venv)
-* GitHub Copilot
-* OpenAI Codex
+Each Silver pipeline performs:
 
-AI tools were used as AI pair programming assistants to accelerate development while maintaining full architectural understanding and control over every transformation.
-
----
-
-## Silver Layer Processing Steps
-
-1. Detect latest Bronze CSV
-2. Validate required schema
-3. Select vehicle-specific columns
-4. Standardize to snake_case
-5. Trim string fields
-6. Cast types safely (unique_id, vehicle_year)
-7. Apply DQ rules
-8. Generate metrics
-9. Write:
- * Clean dataset (partitioned by run_date)
- * Quarantine dataset
- * Metrics CSV
+1. Bronze file discovery  
+2. Schema validation  
+3. Column selection & renaming  
+4. snake_case normalization  
+5. String trimming  
+6. Safe type casting  
+7. Derived column creation  
+8. Data Quality validation  
+9. Clean vs. Quarantine separation  
+10. Partitioned Parquet writing  
+11. Metrics generation  
 
 ---
 
 ## Dataset Granularity
 
-The Silver dataset is modeled with:
+### Vehicles (v1)
+1 row = 1 vehicle involved in a collision  
+Partitioned by: run_date  
 
-**1 row = 1 vehicle involved in a collision**
+### Crashes (v1)
+1 row = 1 collision event  
 
-This ensures consistent analytics and avoids ambiguity when joining with other datasets.
+Additional processing:
+- crash_date parsing
+- crash_time normalization
+- crash_year derived column
+
+Partitioned by: crash_year  
 
 ---
 
-## How to Run
+## Data Quality Strategy
 
-From the project root directory:
+- Invalid records are redirected to Quarantine  
+- Metrics generated per run  
+- Explicit rule-based validation  
+- Date and time normalization checks  
+- Type coercion with safe casting  
 
-```
-python -m src.silver.silver_v1
-```
+---
 
-Make sure your virtual environment is activated before running the command.
+## Execution Variants
+
+Silver output supports execution variants:
+
+silver/<dataset>/<version>/<variant>/
+
+Examples:
+
+silver/vehicles/v1/full/  
+silver/vehicles/v1/incremental/  
+silver/crashes/v1/backfill/  
+
+This allows environment separation without changing Bronze input.
+
+---
+
+## UML Documentation
+
+UML diagrams are maintained in:
+
+docs/uml/
+
+Includes:
+- Component Diagram
+- Activity Diagram (Silver execution flow)
+
+These diagrams formalize system architecture and improve maintainability.
+
+---
+
+## Technologies Used
+
+- Python 3.10+
+- Pandas
+- PyArrow
+- Typer (CLI)
+- Virtual Environment (venv)
+- Git
+- AI-assisted development (Copilot & OpenAI)
 
 ---
 
 ## Future Improvements
 
-* Gold layer aggregations (yearly metrics, driver profile analysis, vehicle trends)
-* Data quality reporting
-* Logging improvements
-* CLI arguments for year-based execution
-* Automated testing
-* CI/CD integration
+- Gold layer aggregations
+- Automated testing (pytest)
+- CI/CD integration
+- Logging framework
+- Incremental processing logic
+- Data contracts enforcement layer
+- Metadata tracking
+- Orchestration integration (Prefect/Airflow)
 
 ---
 
-## Learning Goals
+## Learning Objectives
 
-This project is designed to practice:
+This project practices:
 
-* Data lake architecture principles
-* Schema contracts
-* Partitioning strategy
-* Pipeline reproducibility
-* Clean project structure
-* AI-augmented software development
+- Modular data pipeline architecture
+- Data lake layering principles
+- Schema contracts
+- Partitioning strategies
+- Reproducible execution patterns
+- CLI-driven orchestration
+- AI-augmented development workflows
 
 ---
 
-Este projeto implementa um pipeline de engenharia de dados utilizando o dataset NYC Motor Vehicle Collisions – Vehicles.
+# 🇧🇷 Versão em Português
+
+## Visão Geral do Projeto
+
+Este projeto implementa um pipeline modular e orientado a produção utilizando os datasets NYC Motor Vehicle Collisions.
 
 A arquitetura segue o padrão em camadas:
 
-Bronze → Silver → Gold
+Bronze (CSV bruto)  
+↓  
+Silver (Parquet validado, tipado e particionado)  
+↓  
+Gold (Agregações e métricas – planejado)
 
-Na camada Silver (v1), o projeto realiza:
+O pipeline é modular e executado via CLI, permitindo múltiplos datasets e versões sob uma arquitetura unificada.
 
-* Validação de schema
-* Seleção de colunas com base em um Data Dictionary
-* Padronização de nomes (snake_case)
-* Parsing seguro de datas e tipos numéricos
-* Escrita em formato Parquet particionado por ano
+---
 
-A granularidade definida é:
+## Princípios de Arquitetura
 
-**1 linha = 1 veículo envolvido em colisão**
+- Contrato de schema com validação explícita
+- Pipelines modulares por dataset (vehicles, crashes)
+- Arquitetura em camadas (Bronze → Silver → Gold)
+- Estratégia de particionamento para performance
+- Execução reproduzível via CLI
+- Separação por variantes (full, incremental, backfill)
+- Desenvolvimento assistido por IA
 
-O objetivo é sair do modelo de notebook exploratório e evoluir para um pipeline estruturado, reproduzível e escalável, aplicando conceitos reais de engenharia de dados.
+---
 
-Ferramentas como GitHub Copilot e OpenAI Codex foram utilizadas como apoio no desenvolvimento, acelerando a implementação sem abrir mão do entendimento arquitetural.
+## Pipelines Silver Disponíveis
+
+| Dataset  | Versão | Descrição |
+|----------|--------|-----------|
+| vehicles | v1 | 1 linha = 1 veículo |
+| crashes  | v1 | 1 linha = 1 colisão |
+
+---
+
+## Execução via CLI
+
+python -m src.cli silver run -d vehicles -v v1
+
+Opções disponíveis:
+
+-d / --dataset  
+-v / --version  
+--variant  
+--run-date  
+--dry-run  
+
+---
+
+## Granularidade
+
+### Vehicles
+1 linha = 1 veículo envolvido em colisão  
+Particionado por: run_date  
+
+### Crashes
+1 linha = 1 evento de colisão  
+Particionado por: crash_year  
+
+---
+
+## Estratégia de Qualidade de Dados
+
+- Registros inválidos enviados para Quarantine  
+- Geração de métricas por execução  
+- Regras explícitas de validação  
+- Normalização de datas e horários  
+- Conversão segura de tipos  
+
+---
+
+## Objetivos de Aprendizado
+
+- Arquitetura de Data Lake
+- Contrato de schema
+- Estratégias de particionamento
+- Execução reproduzível
+- Estrutura modular
+- Desenvolvimento assistido por IA
