@@ -86,50 +86,6 @@ The pipeline automatically detects the most recent file.
 
 ---
 
-## Architecture
-
-crashes-data-project/
-│
-├── data/
-│   ├── bronze/
-│   │   └── vehicles/full/
-│   │
-│   ├── silver/
-│   │   └── <dataset>/<version>/<variant>/
-│   │       └── run_date=YYYY-MM-DD/
-│   │
-│   ├── silver_quarantine/
-│   │   └── <dataset>/<version>/<variant>/
-│   │
-│   ├── metrics/
-│   │   └── silver/<dataset>/<version>/<variant>/
-│   │
-│   └── gold/ (planned)
-│
-├── src/
-│   ├── cli.py
-│   ├── config.py
-│   ├── silver/
-│   │   ├── vehicles/v1/run.py
-│   │   └── crashes/v1/run.py
-│   │
-│   ├── dq/
-│   │   └── silver/
-│   │       ├── vehicles/v1/dq.py
-│   │       └── crashes/v1/dq.py
-│   │
-│   ├── metrics/
-│   │   └── metrics.py
-│   │
-│   └── utils/
-│       └── io_utils.py
-│
-├── docs/uml/
-├── notebooks/
-└── requirements.txt
-
----
-
 ## Silver Layer – Processing Logic
 
 Each Silver pipeline performs:
