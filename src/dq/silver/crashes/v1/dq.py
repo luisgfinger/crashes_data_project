@@ -33,8 +33,8 @@ def apply_quality_rules_crashes(df: pd.DataFrame, run_date_str: str | None = Non
 
     if "crash_date" in out.columns:
         out["crash_date"] = pd.to_datetime(out["crash_date"], errors="coerce")
-        today_date = date.today()
-        mask = out["crash_date"].isna() | (out["crash_date"].dt.date > today_date)
+        today_ts = pd.Timestamp(date.today()).normalize()
+        mask = out["crash_date"].isna() | (out["crash_date"] > today_ts)
         _append_reason(out, mask, "invalid_date")
     else:
         mask = pd.Series(True, index=out.index)
