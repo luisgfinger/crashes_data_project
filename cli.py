@@ -6,8 +6,12 @@ from typing import Callable, Dict, Optional, Tuple
 from src.silver.vehicles.v1.run import run as run_silver_vehicles_v1
 from src.silver.crashes.v1.run import run as run_silver_crashes_v1
 
+from src.gold.crash_summary.v1.run import run as run_gold_crash_summary_v1
+
 app = typer.Typer(help="crashes-data-project CLI")
 silver_app = typer.Typer(help="Run SILVER pipelines")
+gold_app = typer.Typer(help="Run GOLD pipelines")
+
 
 class Dataset(str, Enum):
     vehicles = "vehicles"
@@ -15,6 +19,14 @@ class Dataset(str, Enum):
 
 
 class Version(str, Enum):
+    v1 = "v1"
+
+
+class GoldDataset(str, Enum):
+    crash_summary = "crash_summary"
+
+
+class GoldVersion(str, Enum):
     v1 = "v1"
 
 
@@ -31,9 +43,12 @@ PIPELINES: Dict[Tuple[Dataset, Version], PipelineFn] = {
     (Dataset.crashes, Version.v1): run_silver_crashes_v1,
 }
 
+GOLD_PIPELINES: Dict[Tuple[GoldDataset, GoldVersion], PipelineFn] = {
+    (GoldDataset.crash_summary, GoldVersion.v1): run_gold_crash_summary_v1,
+}
+
 
 def _validate_run_date(run_date: Optional[str]) -> str:
-   
     run_date_str = run_date or date.today().isoformat()
     try:
         datetime.strptime(run_date_str, "%Y-%m-%d")
@@ -47,39 +62,32 @@ def _available_pipelines_hint() -> str:
     return "Available pipelines:\n- " + "\n- ".join(items)
 
 
+def _available_gold_pipelines_hint() -> str:
+    items = sorted([f"gold/{ds.value}/{ver.value}" for (ds, ver) in GOLD_PIPELINES.keys()])
+    return "Available pipelines:\n- " + "\n- ".join(items)
+
+
 @silver_app.command("run")
-def run(
+def run_silver(
     dataset: Dataset = typer.Option(
-        Dataset.vehicles,
-        "--dataset",
-        "-d",
-        help="Which dataset pipeline to run.",
-        show_default=True,
+        Dataset.vehicles, "--dataset", "-d",
+        help="Which dataset pipeline to run.", show_default=True
     ),
     version: Version = typer.Option(
-        Version.v1,
-        "--version",
-        "-v",
-        help="Pipeline version.",
-        show_default=True,
+        Version.v1, "--version", "-v",
+        help="Pipeline version.", show_default=True
     ),
     variant: Variant = typer.Option(
-        Variant.full,
-        "--variant",
-        help="Execution mode (full/incremental/backfill).",
-        show_default=True,
+        Variant.full, "--variant",
+        help="Execution mode (full/incremental/backfill).", show_default=True
     ),
     run_date: Optional[str] = typer.Option(
-        None,
-        "--run-date",
-        help="Run date in YYYY-MM-DD. Defaults to today.",
-        show_default=False,
+        None, "--run-date",
+        help="Run date in YYYY-MM-DD. Defaults to today.", show_default=False
     ),
     dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Simulate execution (no writes).",
-        show_default=True,
+        False, "--dry-run",
+        help="Simulate execution (no writes).", show_default=True
     ),
 ):
     run_date_str = _validate_run_date(run_date)
@@ -93,7 +101,43 @@ def run(
     pipeline(run_date_str=run_date_str, variant=variant.value, dry_run=dry_run)
 
 
+@gold_app.command("run")
+def run_gold(
+    dataset: GoldDataset = typer.Option(
+        GoldDataset.crash_summary, "--dataset", "-d",
+        help="Which GOLD dataset pipeline to run.", show_default=True
+    ),
+    version: GoldVersion = typer.Option(
+        GoldVersion.v1, "--version", "-v",
+        help="Pipeline version.", show_default=True
+    ),
+    variant: Variant = typer.Option(
+        Variant.full, "--variant",
+        help="Execution mode (full/incremental/backfill).", show_default=True
+    ),
+    run_date: Optional[str] = typer.Option(
+        None, "--run-date",
+        help="Run date in YYYY-MM-DD. Defaults to today.", show_default=False
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run",
+        help="Simulate execution (no writes).", show_default=True
+    ),
+):
+    run_date_str = _validate_run_date(run_date)
+
+    pipeline = GOLD_PIPELINES.get((dataset, version))
+    if pipeline is None:
+        raise typer.BadParameter(
+            f"Pipeline not found: gold/{dataset.value}/{version.value}\n\n{_available_gold_pipelines_hint()}"
+        )
+
+    pipeline(run_date_str=run_date_str, variant=variant.value, dry_run=dry_run)
+
+
 app.add_typer(silver_app, name="silver")
+app.add_typer(gold_app, name="gold")
+
 
 if __name__ == "__main__":
     app()

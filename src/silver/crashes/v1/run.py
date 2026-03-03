@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.config import bronze_path, silver_path, quarantine_path, silver_metrics_path
+from src.config import bronze_path, silver_path, silver_quarantine_path, silver_metrics_path
 from src.utils.io_utils import _normalize_time_to_hhmm, find_latest_csv, _assert_columns_exist, _write_parquet_overwrite
 from src.dq.silver.crashes.v1.dq import apply_quality_rules_crashes
 from src.metrics.metrics import _write_metrics_csv
@@ -38,7 +38,7 @@ def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None
 
     bronze_dir = bronze_path(BRONZE_DATASET)
     silver_dir = silver_path(SILVER_DATASET, VERSION, variant)
-    quarantine_dir = quarantine_path(SILVER_DATASET, VERSION, variant)
+    quarantine_dir = silver_quarantine_path(SILVER_DATASET, VERSION, variant)
     metrics_dir = silver_metrics_path(SILVER_DATASET, VERSION, variant)
 
     bronze_file = find_latest_csv(bronze_dir)
