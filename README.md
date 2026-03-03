@@ -72,7 +72,7 @@ Raw datasets are NOT included in this repository due to GitHub size limits.
 Download from NYC Open Data:
 
 Motor Vehicle Collisions – Vehicles  
-https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/h9gi-nx95
+[https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/h9gi-nx95](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/bm4k-52h4/data_preview)
 
 After downloading:
 
