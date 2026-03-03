@@ -178,7 +178,7 @@ def test_run_non_dry_run_calls_writes_with_expected_paths(monkeypatch):
 
     assert writes["clean"] is not None
     assert writes["clean"]["path"] == "/silver/crashes/v1/full"
-    assert writes["clean"]["partition_cols"] == ["crash_year"]
+    assert writes["clean"]["partition_cols"] == ["run_date"]
 
     assert writes["quarantine"] is not None
     assert writes["quarantine"]["path"] == "/quarantine/crashes/v1/full/run_date=2026-03-03"

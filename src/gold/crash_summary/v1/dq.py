@@ -6,6 +6,8 @@ def apply_quality_rules(df: pd.DataFrame, run_date_str: str | None = None) -> pd
 
     out = df.copy()
 
+    out["run_date"] = run_date_str
+
     if not out["collision_id"].is_unique:
         raise ValueError("collision_id must be unique in crash_summary")
 

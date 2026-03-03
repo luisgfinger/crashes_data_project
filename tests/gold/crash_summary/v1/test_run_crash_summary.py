@@ -124,7 +124,7 @@ def test_non_dry_run_writes_gold_and_metrics_with_expected_paths_and_partition(m
 
     assert writes["parquet"] is not None
     assert writes["parquet"]["path"] == "/gold/crash_summary/v1/full"
-    assert writes["parquet"]["partition_cols"] == ["crash_year"]
+    assert writes["parquet"]["partition_cols"] == ["run_date"]
 
     assert writes["metrics"] is not None
     assert writes["metrics"]["path"] == "/gold-metrics/crash_summary/v1/full/run_date=2026-03-03"

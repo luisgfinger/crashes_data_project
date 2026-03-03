@@ -3,14 +3,14 @@ import pandas as pd
 from src.config import silver_path, gold_path, gold_metrics_path
 from src.utils.io_utils import _write_parquet_overwrite
 from src.metrics.metrics import _write_metrics_csv
-from src.dq.gold.crash_summary.v1.dq import apply_quality_rules
+from src.gold.crash_summary.v1.dq import apply_quality_rules
 
 SILVER_VEHICLES = ("vehicles", "v1")
 SILVER_CRASHES = ("crashes", "v1")
 
 GOLD_DATASET = "crash_summary"
 VERSION = "v1"
-PARTITION_COL = "crash_year"
+PARTITION_COL = "run_date"
 
 
 def run(run_date_str: str, variant: str, dry_run: bool = False) -> None:
