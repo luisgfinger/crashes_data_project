@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from datetime import date
 
-from src.silver.vehicles.v1.dq import apply_quality_rules_vehicles
+from src.silver.v1.vehicles.dq import apply_quality_rules_vehicles
 
 
 def make_df(rows):

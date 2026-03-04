@@ -28,15 +28,15 @@ def bronze_path(dataset: str, variant: str = "full") -> Path:
 # =====================
 
 def silver_path(dataset: str, version: str, variant: str = "full") -> Path:
-    return SILVER_DIR / dataset / version / variant
+    return SILVER_DIR / version / dataset / variant
 
 
 def silver_quarantine_path(dataset: str, version: str, variant: str = "full") -> Path:
-    return SILVER_QUARANTINE_DIR / dataset / version / variant
+    return SILVER_QUARANTINE_DIR / version / dataset / variant
 
 
 def silver_metrics_path(dataset: str, version: str, variant: str = "full") -> Path:
-    return METRICS_DIR / "silver" / dataset / version / variant
+    return METRICS_DIR / "silver" / version / dataset / variant
 
 
 # =====================

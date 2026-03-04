@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.silver.vehicles.v1.run import run
+from src.silver.v1.vehicles.run import run
 
 
 class DummyPath:
@@ -60,22 +60,22 @@ def test_run_vehicles_dry_run_skips_writes_and_applies_transforms(monkeypatch, c
         "write_metrics": 0,
     }
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run.bronze_path", lambda dataset: DummyPath(f"/bronze/{dataset}"))
-    monkeypatch.setattr("src.silver.vehicles.v1.run.silver_path", lambda dataset, version, variant: DummyPath(f"/silver/{dataset}/{version}/{variant}"))
-    monkeypatch.setattr("src.silver.vehicles.v1.run.silver_quarantine_path", lambda dataset, version, variant: DummyPath(f"/quarantine/{dataset}/{version}/{variant}"))
-    monkeypatch.setattr("src.silver.vehicles.v1.run.silver_metrics_path", lambda dataset, version, variant: DummyPath(f"/metrics/{dataset}/{version}/{variant}"))
+    monkeypatch.setattr("src.silver.v1.vehicles.run.bronze_path", lambda dataset: DummyPath(f"/bronze/{dataset}"))
+    monkeypatch.setattr("src.silver.v1.vehicles.run.silver_path", lambda dataset, version, variant: DummyPath(f"/silver/{dataset}/{version}/{variant}"))
+    monkeypatch.setattr("src.silver.v1.vehicles.run.silver_quarantine_path", lambda dataset, version, variant: DummyPath(f"/quarantine/{dataset}/{version}/{variant}"))
+    monkeypatch.setattr("src.silver.v1.vehicles.run.silver_metrics_path", lambda dataset, version, variant: DummyPath(f"/metrics/{dataset}/{version}/{variant}"))
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run.find_latest_csv", lambda bronze_dir: "/bronze/latest.csv")
+    monkeypatch.setattr("src.silver.v1.vehicles.run.find_latest_csv", lambda bronze_dir: "/bronze/latest.csv")
 
     raw_df = _make_raw_df()
-    monkeypatch.setattr("src.silver.vehicles.v1.run.pd.read_csv", lambda *args, **kwargs: raw_df.copy())
+    monkeypatch.setattr("src.silver.v1.vehicles.run.pd.read_csv", lambda *args, **kwargs: raw_df.copy())
 
     def fake_assert_columns_exist(df, cols):
         calls["assert_cols"] += 1
         missing = [c for c in cols if c not in df.columns]
         assert not missing
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run._assert_columns_exist", fake_assert_columns_exist)
+    monkeypatch.setattr("src.silver.v1.vehicles.run._assert_columns_exist", fake_assert_columns_exist)
 
     def fake_apply_quality_rules_vehicles(df, run_date_str):
         assert set(df.columns) == {
@@ -118,14 +118,14 @@ def test_run_vehicles_dry_run_skips_writes_and_applies_transforms(monkeypatch, c
         metrics_by_reason = pd.DataFrame(columns=["run_date", "reason", "count"])
         return DummyDQ(clean, quarantine, metrics_summary, metrics_by_reason, run_date_str)
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run.apply_quality_rules_vehicles", fake_apply_quality_rules_vehicles)
+    monkeypatch.setattr("src.silver.v1.vehicles.run.apply_quality_rules_vehicles", fake_apply_quality_rules_vehicles)
 
     monkeypatch.setattr(
-        "src.silver.vehicles.v1.run._write_parquet_overwrite",
+        "src.silver.v1.vehicles.run._write_parquet_overwrite",
         lambda *a, **k: calls.__setitem__("write_clean", calls["write_clean"] + 1),
     )
     monkeypatch.setattr(
-        "src.silver.vehicles.v1.run._write_metrics_csv",
+        "src.silver.v1.vehicles.run._write_metrics_csv",
         lambda *a, **k: calls.__setitem__("write_metrics", calls["write_metrics"] + 1),
     )
 
@@ -145,15 +145,15 @@ def test_run_vehicles_dry_run_skips_writes_and_applies_transforms(monkeypatch, c
 def test_run_vehicles_non_dry_run_calls_writes_with_expected_paths(monkeypatch):
     writes = {"clean": None, "quarantine": None, "metrics": None}
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run.bronze_path", lambda dataset: DummyPath(f"/bronze/{dataset}"))
-    monkeypatch.setattr("src.silver.vehicles.v1.run.silver_path", lambda dataset, version, variant: DummyPath(f"/silver/{dataset}/{version}/{variant}"))
-    monkeypatch.setattr("src.silver.vehicles.v1.run.silver_quarantine_path", lambda dataset, version, variant: DummyPath(f"/quarantine/{dataset}/{version}/{variant}"))
-    monkeypatch.setattr("src.silver.vehicles.v1.run.silver_metrics_path", lambda dataset, version, variant: DummyPath(f"/metrics/{dataset}/{version}/{variant}"))
+    monkeypatch.setattr("src.silver.v1.vehicles.run.bronze_path", lambda dataset: DummyPath(f"/bronze/{dataset}"))
+    monkeypatch.setattr("src.silver.v1.vehicles.run.silver_path", lambda dataset, version, variant: DummyPath(f"/silver/{dataset}/{version}/{variant}"))
+    monkeypatch.setattr("src.silver.v1.vehicles.run.silver_quarantine_path", lambda dataset, version, variant: DummyPath(f"/quarantine/{dataset}/{version}/{variant}"))
+    monkeypatch.setattr("src.silver.v1.vehicles.run.silver_metrics_path", lambda dataset, version, variant: DummyPath(f"/metrics/{dataset}/{version}/{variant}"))
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run.find_latest_csv", lambda bronze_dir: "/bronze/latest.csv")
-    monkeypatch.setattr("src.silver.vehicles.v1.run.pd.read_csv", lambda *args, **kwargs: _make_raw_df())
+    monkeypatch.setattr("src.silver.v1.vehicles.run.find_latest_csv", lambda bronze_dir: "/bronze/latest.csv")
+    monkeypatch.setattr("src.silver.v1.vehicles.run.pd.read_csv", lambda *args, **kwargs: _make_raw_df())
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run._assert_columns_exist", lambda df, cols: None)
+    monkeypatch.setattr("src.silver.v1.vehicles.run._assert_columns_exist", lambda df, cols: None)
 
     def fake_dq(df, run_date_str):
         clean = df.copy()
@@ -162,7 +162,7 @@ def test_run_vehicles_non_dry_run_calls_writes_with_expected_paths(monkeypatch):
         metrics_by_reason = pd.DataFrame(columns=["run_date", "reason", "count"])
         return DummyDQ(clean, quarantine, metrics_summary, metrics_by_reason, run_date_str)
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run.apply_quality_rules_vehicles", fake_dq)
+    monkeypatch.setattr("src.silver.v1.vehicles.run.apply_quality_rules_vehicles", fake_dq)
 
     def fake_write_parquet_overwrite(path, df, partition_cols=None):
         if partition_cols is not None:
@@ -170,7 +170,7 @@ def test_run_vehicles_non_dry_run_calls_writes_with_expected_paths(monkeypatch):
         else:
             writes["quarantine"] = {"path": str(path), "rows": len(df)}
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run._write_parquet_overwrite", fake_write_parquet_overwrite)
+    monkeypatch.setattr("src.silver.v1.vehicles.run._write_parquet_overwrite", fake_write_parquet_overwrite)
 
     def fake_write_metrics_csv(path, metrics_summary, metrics_by_reason):
         writes["metrics"] = {
@@ -179,7 +179,7 @@ def test_run_vehicles_non_dry_run_calls_writes_with_expected_paths(monkeypatch):
             "by_reason_rows": len(metrics_by_reason),
         }
 
-    monkeypatch.setattr("src.silver.vehicles.v1.run._write_metrics_csv", fake_write_metrics_csv)
+    monkeypatch.setattr("src.silver.v1.vehicles.run._write_metrics_csv", fake_write_metrics_csv)
 
     run(run_date_str="2026-03-03", variant="full", dry_run=False)
 

@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.silver.crashes.v1.dq import apply_quality_rules_crashes, _append_reason
+from src.silver.v1.crashes.dq import apply_quality_rules_crashes, _append_reason
 
 def test_append_reason_sets_when_empty():
     df = pd.DataFrame({"dq_reasons": ["", None, ""]})
@@ -55,7 +55,7 @@ def test_no_columns_crash_date_keeps_all_clean_and_no_metrics_by_reason():
 
 def test_invalid_crash_date_null_or_future_goes_to_quarantine_with_reason(monkeypatch):
 
-    import src.silver.crashes.v1.dq 
+    import src.silver.v1.crashes.dq
     from datetime import date as real_date
 
     class FakeDate(real_date):
@@ -63,7 +63,7 @@ def test_invalid_crash_date_null_or_future_goes_to_quarantine_with_reason(monkey
         def today(cls):
             return cls(2026, 3, 3)
 
-    monkeypatch.setattr(src.silver.crashes.v1.dq, "date", FakeDate)
+    monkeypatch.setattr(src.silver.v1.crashes.dq, "date", FakeDate)
 
     df = pd.DataFrame(
         {
@@ -87,7 +87,7 @@ def test_invalid_crash_date_null_or_future_goes_to_quarantine_with_reason(monkey
 
 
 def test_missing_ids_go_to_discard_with_reason(monkeypatch):
-    import src.silver.crashes.v1.dq 
+    import src.silver.v1.crashes.dq
     from datetime import date as real_date
 
     class FakeDate(real_date):
@@ -95,7 +95,7 @@ def test_missing_ids_go_to_discard_with_reason(monkeypatch):
         def today(cls):
             return cls(2026, 3, 3)
 
-    monkeypatch.setattr(src.silver.crashes.v1.dq , "date", FakeDate)
+    monkeypatch.setattr(src.silver.v1.crashes.dq, "date", FakeDate)
 
     df = pd.DataFrame(
         {

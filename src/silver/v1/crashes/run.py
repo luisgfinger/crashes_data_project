@@ -2,7 +2,7 @@ import pandas as pd
 
 from src.config import bronze_path, silver_path, silver_quarantine_path, silver_metrics_path
 from src.utils.io_utils import _normalize_time_to_hhmm, find_latest_csv, _assert_columns_exist, _write_parquet_overwrite
-from src.silver.crashes.v1.dq import apply_quality_rules_crashes
+from src.silver.v1.crashes.dq import apply_quality_rules_crashes
 from src.metrics.metrics import _write_metrics_csv
 
 BRONZE_DATASET = "crashes"
