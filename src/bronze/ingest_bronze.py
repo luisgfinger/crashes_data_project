@@ -1,17 +1,8 @@
 from __future__ import annotations
-
-from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 from api.nyc_open_data import NYCOpenDataClient
-
-
-def bronze_output_path(dataset: str, variant: str, run_date: Optional[str] = None) -> Path:
-    if run_date is None:
-        run_date = datetime.now().strftime("%Y%m%d")
-    return Path(f"data/bronze/{dataset}/{variant}/{dataset}_raw_{run_date}.csv")
-
+from src.config import bronze_output_path
 
 def ingest_bronze_dataset(
     dataset: str,

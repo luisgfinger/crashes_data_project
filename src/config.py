@@ -22,6 +22,11 @@ LOGS_DIR = BASE_DIR / "logs"
 def bronze_path(dataset: str, variant: str = "full") -> Path:
     return BRONZE_DIR / dataset / variant
 
+def bronze_output_path(dataset: str, variant: str, run_date: Optional[str] = None) -> Path:
+    if run_date is None:
+        run_date = datetime.now().strftime("%Y%m%d")
+    return Path(f"{BRONZE_DIR}/{dataset}/{variant}/{dataset}_raw_{run_date}.csv")
+
 
 # =====================
 # Silver

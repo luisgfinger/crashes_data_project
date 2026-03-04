@@ -20,11 +20,6 @@ def build_fact_crash(
 
     out["total_vehicles"] = out["total_vehicles"].fillna(0).astype("Int64")
     out["total_occupants"] = out["total_occupants"].fillna(0).astype("Int64")
-
-    killed = out["number_of_persons_killed"].fillna(0)
-    injured = out["number_of_persons_injured"].fillna(0)
-    tv = out["total_vehicles"].fillna(0)
-
     out["run_date"] = run_date_str
 
     cols = [
