@@ -432,33 +432,6 @@ Metrics include:
 
 ---
 
-# Project Structure
-
-```
-api/
-  nyc_open_data.py
-
-src/
-  bronze/
-  silver/
-  gold/
-  metrics/
-  utils/
-
-data/
-  bronze/
-  silver/
-  gold/
-  silver_quarantine/
-  metrics/
-
-docs/
-notebooks/
-tests/
-```
-
----
-
 # Technologies Used
 
 - Python 3.10+
