@@ -16,6 +16,7 @@ class DQResult:
 
 
 def _append_reason(df: pd.DataFrame, mask: pd.Series, reason: str) -> None:
+   
     df.loc[mask, "dq_reasons"] = df.loc[mask, "dq_reasons"].where(
         df.loc[mask, "dq_reasons"].isna() | (df.loc[mask, "dq_reasons"] == ""),
         df.loc[mask, "dq_reasons"] + ";" + reason,
@@ -24,12 +25,29 @@ def _append_reason(df: pd.DataFrame, mask: pd.Series, reason: str) -> None:
 
 
 def apply_quality_rules_crashes(df: pd.DataFrame, run_date_str: str | None = None) -> DQResult:
-    run_date_str = run_date_str or date.today().isoformat()
 
+    run_date_str = run_date_str or date.today().isoformat()
     out = df.copy()
 
     out["dq_reasons"] = ""
     out["run_date"] = run_date_str
+
+    discard_mask = pd.Series(False, index=out.index)
+    NUMERIC_COLUMNS = [
+        "number_of_persons_injured",
+        "number_of_persons_killed",
+        "number_of_pedestrians_injured",
+        "number_of_pedestrians_killed",
+        "number_of_cyclist_injured",
+        "number_of_cyclist_killed",
+        "number_of_motorist_injured",
+        "number_of_motorist_killed",
+    ]
+
+    for col in NUMERIC_COLUMNS:
+        if col in out.columns:
+            mask = out[col] < 0
+            _append_reason(out, mask, f"invalid_{col}")
 
     if "crash_date" in out.columns:
         out["crash_date"] = pd.to_datetime(out["crash_date"], errors="coerce")
@@ -37,17 +55,45 @@ def apply_quality_rules_crashes(df: pd.DataFrame, run_date_str: str | None = Non
         mask = out["crash_date"].isna() | (out["crash_date"] > today_ts)
         _append_reason(out, mask, "invalid_date")
     else:
-        mask = pd.Series(True, index=out.index)
-        discard_mask = pd.Series([False] * len(out), index=out.index)
+        _append_reason(out, pd.Series(True, index=out.index), "missing_crash_date")
 
-    if "unique_id" in out.columns and "collision_id" in out.columns:
-        discard_mask = (
-            out["unique_id"].isna() |
-            out["collision_id"].isna()
-        )
+    if "collision_id" in out.columns:
+        discard_mask = out["collision_id"].isna() | (out["collision_id"].astype("string").str.len() == 0)
+    else:
+        discard_mask = pd.Series(True, index=out.index)
 
     if discard_mask.any():
         _append_reason(out, discard_mask, "discard_missing_id")
+
+    injured_needed = [
+        "number_of_persons_injured",
+        "number_of_pedestrians_injured",
+        "number_of_cyclist_injured",
+        "number_of_motorist_injured",
+    ]
+    if all(c in out.columns for c in injured_needed):
+        injured_subtotal = (
+            out["number_of_pedestrians_injured"].fillna(0)
+            + out["number_of_cyclist_injured"].fillna(0)
+            + out["number_of_motorist_injured"].fillna(0)
+        )
+        mask = out["number_of_persons_injured"].fillna(0) < injured_subtotal
+        _append_reason(out, mask, "inconsistent_persons_injured_breakdown")
+
+    killed_needed = [
+        "number_of_persons_killed",
+        "number_of_pedestrians_killed",
+        "number_of_cyclist_killed",
+        "number_of_motorist_killed",
+    ]
+    if all(c in out.columns for c in killed_needed):
+        killed_subtotal = (
+            out["number_of_pedestrians_killed"].fillna(0)
+            + out["number_of_cyclist_killed"].fillna(0)
+            + out["number_of_motorist_killed"].fillna(0)
+        )
+        mask = out["number_of_persons_killed"].fillna(0) < killed_subtotal
+        _append_reason(out, mask, "inconsistent_persons_killed_breakdown")
 
     discard_df = out[discard_mask].copy()
 
@@ -56,8 +102,7 @@ def apply_quality_rules_crashes(df: pd.DataFrame, run_date_str: str | None = Non
     quarantine_df = out[quarantine_mask].copy()
 
     clean_mask = (~has_reasons) & (~discard_mask)
-    clean_df = out[clean_mask].copy()
-    clean_df = clean_df.drop(columns=["dq_reasons"])
+    clean_df = out[clean_mask].copy().drop(columns=["dq_reasons"])
 
     total_read = len(out)
     total_clean = len(clean_df)
@@ -73,7 +118,7 @@ def apply_quality_rules_crashes(df: pd.DataFrame, run_date_str: str | None = Non
         ]
     )
 
-    if total_quarantine + total_discard > 0:
+    if (total_quarantine + total_discard) > 0:
         reason_series = out.loc[has_reasons, "dq_reasons"].astype("string")
         exploded = reason_series.str.split(";").explode()
         metrics_by_reason = (

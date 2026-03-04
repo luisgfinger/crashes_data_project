@@ -6,7 +6,7 @@ from typing import Callable, Dict, Optional, Tuple
 from src.silver.vehicles.v1.run import run as run_silver_vehicles_v1
 from src.silver.crashes.v1.run import run as run_silver_crashes_v1
 
-from src.gold.crash_summary.v1.run import run as run_gold_crash_summary_v1
+from src.gold.v1.run import run as run_gold_v1
 
 app = typer.Typer(help="crashes-data-project CLI")
 silver_app = typer.Typer(help="Run SILVER pipelines")
@@ -21,19 +21,18 @@ class Dataset(str, Enum):
 class Version(str, Enum):
     v1 = "v1"
 
-
-class GoldDataset(str, Enum):
-    crash_summary = "crash_summary"
-
-
-class GoldVersion(str, Enum):
-    v1 = "v1"
-
-
 class Variant(str, Enum):
     full = "full"
     incremental = "incremental"
     backfill = "backfill"
+
+
+class GoldDataset(str, Enum):
+    warehouse = "warehouse"
+
+
+class GoldVersion(str, Enum):
+    v1 = "v1"
 
 
 PipelineFn = Callable[..., None]
@@ -44,7 +43,7 @@ PIPELINES: Dict[Tuple[Dataset, Version], PipelineFn] = {
 }
 
 GOLD_PIPELINES: Dict[Tuple[GoldDataset, GoldVersion], PipelineFn] = {
-    (GoldDataset.crash_summary, GoldVersion.v1): run_gold_crash_summary_v1,
+    (GoldDataset.warehouse, GoldVersion.v1): run_gold_v1,
 }
 
 
@@ -104,8 +103,8 @@ def run_silver(
 @gold_app.command("run")
 def run_gold(
     dataset: GoldDataset = typer.Option(
-        GoldDataset.crash_summary, "--dataset", "-d",
-        help="Which GOLD dataset pipeline to run.", show_default=True
+        GoldDataset.warehouse, "--dataset", "-d",
+        help="Gold orchestrator pipeline.", show_default=True
     ),
     version: GoldVersion = typer.Option(
         GoldVersion.v1, "--version", "-v",

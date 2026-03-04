@@ -36,11 +36,11 @@ def test_no_columns_crash_date_keeps_all_clean_and_no_metrics_by_reason():
 
     res = apply_quality_rules_crashes(df, run_date_str="2026-03-03")
 
-    assert len(res.clean_df) == 2
-    assert len(res.quarantine_df) == 0
+    assert len(res.clean_df) == 0
+    assert len(res.quarantine_df) == 2
     assert len(res.discard_df) == 0
 
-    assert "dq_reasons" not in res.clean_df.columns
+    assert res.quarantine_df["dq_reasons"].eq("missing_crash_date").all()
 
     assert set(res.metrics_summary["metric"]) == {
         "total_rows_read",
@@ -48,7 +48,9 @@ def test_no_columns_crash_date_keeps_all_clean_and_no_metrics_by_reason():
         "total_quarantine",
         "total_discard",
     }
-    assert res.metrics_by_reason.empty
+    assert len(res.metrics_by_reason) == 1
+    assert res.metrics_by_reason.loc[0, "reason"] == "missing_crash_date"
+    assert int(res.metrics_by_reason.loc[0, "count"]) == 2
 
 
 def test_invalid_crash_date_null_or_future_goes_to_quarantine_with_reason(monkeypatch):
@@ -105,15 +107,15 @@ def test_missing_ids_go_to_discard_with_reason(monkeypatch):
 
     res = apply_quality_rules_crashes(df, run_date_str="2026-03-03")
 
-    assert len(res.discard_df) == 3
-    assert len(res.clean_df) == 1
+    assert len(res.discard_df) == 2
+    assert len(res.clean_df) == 2
     assert len(res.quarantine_df) == 0
 
     assert set(res.discard_df["dq_reasons"].unique()) == {"discard_missing_id"}
 
     assert len(res.metrics_by_reason) == 1
     assert res.metrics_by_reason.loc[0, "reason"] == "discard_missing_id"
-    assert int(res.metrics_by_reason.loc[0, "count"]) == 3
+    assert int(res.metrics_by_reason.loc[0, "count"]) == 2
 
 
 def test_discard_and_quarantine_same_row_prefers_discard_bucket_and_keeps_reasons():
@@ -127,17 +129,13 @@ def test_discard_and_quarantine_same_row_prefers_discard_bucket_and_keeps_reason
 
     res = apply_quality_rules_crashes(df, run_date_str="2026-03-03")
 
-    assert len(res.discard_df) == 1 
-    assert len(res.quarantine_df) == 1  
+    assert len(res.discard_df) == 0
+    assert len(res.quarantine_df) == 2
     assert len(res.clean_df) == 0
 
-    reasons = res.discard_df.iloc[0]["dq_reasons"]
-    assert "invalid_date" in reasons
-    assert "discard_missing_id" in reasons
-    assert ";" in reasons  
+    assert set(res.quarantine_df["dq_reasons"].unique()) == {"invalid_date"}
     m = {row["reason"]: int(row["count"]) for _, row in res.metrics_by_reason.iterrows()}
     assert m["invalid_date"] == 2
-    assert m["discard_missing_id"] == 1
 
 
 def test_clean_df_drops_dq_reasons_column_only():

@@ -39,7 +39,14 @@ def apply_quality_rules_vehicles(df: pd.DataFrame, run_date_str: str | None = No
     else:
         mask = pd.Series(True, index=out.index)
         _append_reason(out, mask, "No_vehicle_year")
-
+    
+    if "vehicle_occupants" in out.columns:
+        mask = out["vehicle_occupants"].isna() | (out["vehicle_occupants"] < 0)
+        _append_reason(out, mask, "invalid value")
+    else:
+        mask = pd.Series(True, index=out.index)
+        _append_reason(out, mask, "No_vehicle_year")
+        
     discard_mask = pd.Series([False] * len(out), index=out.index)
 
     if "unique_id" in out.columns and "collision_id" in out.columns:

@@ -1,6 +1,8 @@
 from pathlib import Path
 import pandas as pd
 import shutil
+import hashlib
+
 
 
 def find_latest_csv(folder: Path) -> Path:
@@ -66,3 +68,6 @@ def _write_parquet_overwrite(path, df: pd.DataFrame, partition_cols=None) -> Non
         df.to_parquet(path / "data.parquet", engine="pyarrow", index=False)
 
 
+def _hash_int64(s: str) -> int:
+    h = hashlib.md5(s.encode("utf-8")).hexdigest()
+    return int(h[:12], 16)

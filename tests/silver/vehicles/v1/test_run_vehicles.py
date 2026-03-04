@@ -37,10 +37,16 @@ def _make_raw_df():
             "VEHICLE_MAKE": [" Toyota ", " Ford ", ""],
             "VEHICLE_YEAR": [" 2010 ", "not_a_year", None],
             "STATE_REGISTRATION": [" NY ", " NJ", None],
+            "VEHICLE_OCCUPANTS": [" 2 ", "1", None],
             "VEHICLE_DAMAGE": [" Front ", None, ""],
             "VEHICLE_DAMAGE_1": ["Rear ", " Side", None],
             "VEHICLE_DAMAGE_2": ["", None, " Roof "],
             "VEHICLE_DAMAGE_3": [None, "", " "],
+            "PRE_CRASH": [" a ", "b", None],
+            "TRAVEL_DIRECTION": [" N ", "S", ""],
+            "POINT_OF_IMPACT": ["Front ", " Rear", None],
+            "CONTRIBUTING_FACTOR_1": [" Speeding ", None, ""],
+            "CONTRIBUTING_FACTOR_2": ["", " Alcohol ", None],
         }
     )
 
@@ -79,17 +85,25 @@ def test_run_vehicles_dry_run_skips_writes_and_applies_transforms(monkeypatch, c
             "vehicle_make",
             "vehicle_year",
             "state_registration",
+            "vehicle_occupants",
             "vehicle_damage",
             "vehicle_damage_1",
             "vehicle_damage_2",
             "vehicle_damage_3",
+            "pre_crash",
+            "travel_direction",
+            "point_of_impact",
+            "contributing_factor_1",
+            "contributing_factor_2",
         }
 
         assert df.loc[0, "vehicle_type"] == "Sedan"
         assert df.loc[0, "vehicle_make"] == "Toyota"
         assert df.loc[0, "state_registration"] == "NY"
+        assert df.loc[0, "pre_crash"] == "a"
         assert str(df["unique_id"].dtype) == "Int64"
         assert str(df["vehicle_year"].dtype) == "Int64"
+        assert str(df["vehicle_occupants"].dtype) == "Int64"
         assert int(df.loc[0, "unique_id"]) == 1
         assert int(df.loc[0, "vehicle_year"]) == 2010
         assert pd.isna(df.loc[1, "vehicle_year"]) 

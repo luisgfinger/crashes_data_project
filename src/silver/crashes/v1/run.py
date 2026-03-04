@@ -5,34 +5,50 @@ from src.utils.io_utils import _normalize_time_to_hhmm, find_latest_csv, _assert
 from src.silver.crashes.v1.dq import apply_quality_rules_crashes
 from src.metrics.metrics import _write_metrics_csv
 
-BRONZE_DATASET = "vehicles"
+BRONZE_DATASET = "crashes"
 SILVER_DATASET = "crashes" 
 VERSION = "v1"
 PARTITION_COL = "run_date"
 
 TARGET_COLUMNS = [
-    "UNIQUE_ID",
     "COLLISION_ID",
-    "CRASH_DATE",
-    "CRASH_TIME",
-    "PRE_CRASH",
-    "TRAVEL_DIRECTION",
-    "POINT_OF_IMPACT",
-    "CONTRIBUTING_FACTOR_1",
-    "CONTRIBUTING_FACTOR_2",
+    "CRASH DATE",
+    "CRASH TIME",
+    "NUMBER OF PERSONS INJURED",
+    "NUMBER OF PERSONS KILLED",
+    "NUMBER OF PEDESTRIANS INJURED",
+    "NUMBER OF PEDESTRIANS KILLED",
+    "NUMBER OF CYCLIST INJURED",
+    "NUMBER OF CYCLIST KILLED",
+    "NUMBER OF MOTORIST INJURED",
+    "NUMBER OF MOTORIST KILLED",
 ]
 
 RENAME_MAP = {
-    "UNIQUE_ID": "unique_id" ,
     "COLLISION_ID": "collision_id",
-    "CRASH_DATE": "crash_date",
-    "CRASH_TIME": "crash_time",
-    "PRE_CRASH": "pre_crash",
-    "TRAVEL_DIRECTION": "travel_direction",
-    "POINT_OF_IMPACT": "point_of_impact",
-    "CONTRIBUTING_FACTOR_1": "contributing_factor_1",
-    "CONTRIBUTING_FACTOR_2": "contributing_factor_2",
+    "CRASH DATE": "crash_date",
+    "CRASH TIME": "crash_time",
+    "NUMBER OF PERSONS INJURED": "number_of_persons_injured",
+    "NUMBER OF PERSONS KILLED": "number_of_persons_killed",
+    "NUMBER OF PEDESTRIANS INJURED": "number_of_pedestrians_injured",
+    "NUMBER OF PEDESTRIANS KILLED": "number_of_pedestrians_killed",
+    "NUMBER OF CYCLIST INJURED": "number_of_cyclist_injured",
+    "NUMBER OF CYCLIST KILLED": "number_of_cyclist_killed",
+    "NUMBER OF MOTORIST INJURED": "number_of_motorist_injured",
+    "NUMBER OF MOTORIST KILLED": "number_of_motorist_killed",
 }
+
+NUMERIC_COLUMNS = [
+    "collision_id",
+    "number_of_persons_injured",
+    "number_of_persons_killed",
+    "number_of_pedestrians_injured",
+    "number_of_pedestrians_killed",
+    "number_of_cyclist_injured",
+    "number_of_cyclist_killed",
+    "number_of_motorist_injured",
+    "number_of_motorist_killed",
+]
 
 def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None:
 
@@ -53,11 +69,15 @@ def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None
         if df[col].dtype == "string":
             df[col] = df[col].str.strip()
 
-    df["unique_id"] = pd.to_numeric(df["unique_id"], errors="coerce").astype("Int64")
+    for col in NUMERIC_COLUMNS:
+        df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
     df["crash_date"] = pd.to_datetime(df["crash_date"], errors="coerce")
     df["crash_time"] = _normalize_time_to_hhmm(df["crash_time"])
 
     df["crash_year"] = df["crash_date"].dt.year.astype("Int64")
+    df["crash_day_of_month"] = df["crash_date"].dt.day.astype("Int64")
+    df["crash_day_of_week"] = df["crash_date"].dt.dayofweek.astype("Int64")
 
     dq = apply_quality_rules_crashes(df, run_date_str=run_date_str)
 

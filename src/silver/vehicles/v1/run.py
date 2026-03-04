@@ -17,10 +17,16 @@ TARGET_COLUMNS = [
     "VEHICLE_MAKE",
     "VEHICLE_YEAR",
     "STATE_REGISTRATION",
+    "VEHICLE_OCCUPANTS",
     "VEHICLE_DAMAGE",
     "VEHICLE_DAMAGE_1",
     "VEHICLE_DAMAGE_2",
     "VEHICLE_DAMAGE_3",
+    "PRE_CRASH",
+    "TRAVEL_DIRECTION",
+    "POINT_OF_IMPACT",
+    "CONTRIBUTING_FACTOR_1",
+    "CONTRIBUTING_FACTOR_2",
 
 ]
 
@@ -31,11 +37,24 @@ RENAME_MAP = {
     "VEHICLE_MAKE": "vehicle_make",
     "VEHICLE_YEAR": "vehicle_year",
     "STATE_REGISTRATION": "state_registration",
+    "VEHICLE_OCCUPANTS": "vehicle_occupants",
     "VEHICLE_DAMAGE": "vehicle_damage",
     "VEHICLE_DAMAGE_1": "vehicle_damage_1",
     "VEHICLE_DAMAGE_2": "vehicle_damage_2",
     "VEHICLE_DAMAGE_3": "vehicle_damage_3",
+    "PRE_CRASH": "pre_crash",
+    "TRAVEL_DIRECTION": "travel_direction",
+    "POINT_OF_IMPACT": "point_of_impact",
+    "CONTRIBUTING_FACTOR_1": "contributing_factor_1",
+    "CONTRIBUTING_FACTOR_2": "contributing_factor_2",
 }
+
+NUMERIC_COLUMNS = [
+    "unique_id",
+    "collision_id",
+    "vehicle_year",
+    "vehicle_occupants",
+]
 
 def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None:
     
@@ -56,8 +75,9 @@ def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None
         if df[col].dtype == "string":
             df[col] = df[col].str.strip()
 
-    df["vehicle_year"] = pd.to_numeric(df["vehicle_year"], errors="coerce").astype("Int64")
-    df["unique_id"] = pd.to_numeric(df["unique_id"], errors="coerce").astype("Int64")
+    for col in NUMERIC_COLUMNS:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
 
     dq = apply_quality_rules_vehicles(df, run_date_str=run_date_str)
 

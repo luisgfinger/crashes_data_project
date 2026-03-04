@@ -26,8 +26,8 @@ def test_sets_run_date_and_adds_run_date_column():
 def test_clean_row_when_ids_present_and_vehicle_year_valid():
     df = make_df(
         [
-            {"unique_id": 1, "collision_id": 10, "vehicle_year": 2010},
-            {"unique_id": 2, "collision_id": 11, "vehicle_year": date.today().year + 1},
+            {"unique_id": 1, "collision_id": 10, "vehicle_year": 2010, "vehicle_occupants": 1},
+            {"unique_id": 2, "collision_id": 11, "vehicle_year": date.today().year + 1, "vehicle_occupants": 0},
         ]
     )
 
@@ -43,8 +43,8 @@ def test_quarantine_when_vehicle_year_out_of_range():
     current_year = date.today().year
     df = make_df(
         [
-            {"unique_id": 1, "collision_id": 10, "vehicle_year": 1899}, 
-            {"unique_id": 2, "collision_id": 11, "vehicle_year": current_year + 2},
+            {"unique_id": 1, "collision_id": 10, "vehicle_year": 1899, "vehicle_occupants": 1},
+            {"unique_id": 2, "collision_id": 11, "vehicle_year": current_year + 2, "vehicle_occupants": 1},
         ]
     )
 
@@ -70,9 +70,9 @@ def test_quarantine_when_vehicle_year_column_missing():
 def test_discard_when_missing_unique_id_or_collision_id():
     df = make_df(
         [
-            {"unique_id": None, "collision_id": 10, "vehicle_year": 2010}, 
-            {"unique_id": 2, "collision_id": None, "vehicle_year": 2010},
-            {"unique_id": 3, "collision_id": 12, "vehicle_year": 2010},
+            {"unique_id": None, "collision_id": 10, "vehicle_year": 2010, "vehicle_occupants": 1},
+            {"unique_id": 2, "collision_id": None, "vehicle_year": 2010, "vehicle_occupants": 1},
+            {"unique_id": 3, "collision_id": 12, "vehicle_year": 2010, "vehicle_occupants": 1},
         ]
     )
 
@@ -85,7 +85,7 @@ def test_discard_when_missing_unique_id_or_collision_id():
 
 
 def test_discard_has_reason_even_if_also_invalid_year():
-    df = make_df([{"unique_id": None, "collision_id": 10, "vehicle_year": 1899}])
+    df = make_df([{"unique_id": None, "collision_id": 10, "vehicle_year": 1899, "vehicle_occupants": 1}])
 
     dq = apply_quality_rules_vehicles(df, run_date_str="2026-02-27")
 
@@ -98,9 +98,9 @@ def test_discard_has_reason_even_if_also_invalid_year():
 def test_metrics_summary_counts_match_outputs():
     df = make_df(
         [
-            {"unique_id": 1, "collision_id": 10, "vehicle_year": 2010},  
-            {"unique_id": 2, "collision_id": 11, "vehicle_year": 1899},    
-            {"unique_id": None, "collision_id": 12, "vehicle_year": 2010},  
+            {"unique_id": 1, "collision_id": 10, "vehicle_year": 2010, "vehicle_occupants": 1},
+            {"unique_id": 2, "collision_id": 11, "vehicle_year": 1899, "vehicle_occupants": 1},
+            {"unique_id": None, "collision_id": 12, "vehicle_year": 2010, "vehicle_occupants": 1},
         ]
     )
 
@@ -117,8 +117,8 @@ def test_metrics_summary_counts_match_outputs():
 def test_metrics_by_reason_explodes_reasons_and_counts():
     df = make_df(
         [
-            {"unique_id": 1, "collision_id": 10, "vehicle_year": 1899},   
-            {"unique_id": None, "collision_id": 11, "vehicle_year": 1899}, 
+            {"unique_id": 1, "collision_id": 10, "vehicle_year": 1899, "vehicle_occupants": 1},
+            {"unique_id": None, "collision_id": 11, "vehicle_year": 1899, "vehicle_occupants": 1},
         ]
     )
 

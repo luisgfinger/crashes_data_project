@@ -31,15 +31,17 @@ class DummyDQ:
 def _make_raw_df():
     return pd.DataFrame(
         {
-            "UNIQUE_ID": [" 1 ", "  ", None],
             "COLLISION_ID": [" 10", "20 ", "30 "],
-            "CRASH_DATE": ["2026-03-03", "invalid", "2026-01-01"],
-            "CRASH_TIME": [" 930", " 09:05 ", None],
-            "PRE_CRASH": [" a ", "b", None],
-            "TRAVEL_DIRECTION": [" N ", "S", ""],
-            "POINT_OF_IMPACT": ["Front ", " Rear", None],
-            "CONTRIBUTING_FACTOR_1": [" Speeding ", None, ""],
-            "CONTRIBUTING_FACTOR_2": ["", " Alcohol ", None],
+            "CRASH DATE": ["2026-03-03", "invalid", "2026-01-01"],
+            "CRASH TIME": [" 9:30 ", " 09:05 ", None],
+            "NUMBER OF PERSONS INJURED": ["1", "0", "2"],
+            "NUMBER OF PERSONS KILLED": ["0", "0", "0"],
+            "NUMBER OF PEDESTRIANS INJURED": ["0", "0", "1"],
+            "NUMBER OF PEDESTRIANS KILLED": ["0", "0", "0"],
+            "NUMBER OF CYCLIST INJURED": ["0", "0", "0"],
+            "NUMBER OF CYCLIST KILLED": ["0", "0", "0"],
+            "NUMBER OF MOTORIST INJURED": ["1", "0", "1"],
+            "NUMBER OF MOTORIST KILLED": ["0", "0", "0"],
         }
     )
 
@@ -73,29 +75,31 @@ def test_run_dry_run_skips_writes_and_applies_transforms(monkeypatch, capsys):
 
     def fake_normalize(series: pd.Series) -> pd.Series:
         calls["normalize"] += 1
-        return series.astype("string").str.strip().fillna("").replace({"930": "09:30", "09:05": "09:05"})
+        return series.astype("string").str.strip().fillna("").replace({"9:30": "09:30", "930": "09:30", "09:05": "09:05"})
 
     monkeypatch.setattr("src.silver.crashes.v1.run._normalize_time_to_hhmm", fake_normalize)
 
     def fake_apply_quality_rules_crashes(df, run_date_str):
-
         assert set(df.columns) == {
-            "unique_id",
             "collision_id",
             "crash_date",
             "crash_time",
-            "pre_crash",
-            "travel_direction",
-            "point_of_impact",
-            "contributing_factor_1",
-            "contributing_factor_2",
+            "number_of_persons_injured",
+            "number_of_persons_killed",
+            "number_of_pedestrians_injured",
+            "number_of_pedestrians_killed",
+            "number_of_cyclist_injured",
+            "number_of_cyclist_killed",
+            "number_of_motorist_injured",
+            "number_of_motorist_killed",
             "crash_year",
+            "crash_day_of_month",
+            "crash_day_of_week",
         }
 
-        assert df.loc[0, "pre_crash"] == "a"
-        assert df.loc[0, "travel_direction"] == "N"
-
-        assert str(df["unique_id"].dtype) == "Int64"
+        assert int(df.loc[0, "collision_id"]) == 10
+        assert df.loc[0, "crash_time"] == "09:30"
+        assert str(df["collision_id"].dtype) == "Int64"
         assert pd.api.types.is_datetime64_any_dtype(df["crash_date"])
         assert str(df["crash_year"].dtype) == "Int64"
 
