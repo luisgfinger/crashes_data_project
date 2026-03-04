@@ -1,4 +1,6 @@
+import datetime
 from pathlib import Path
+from typing import Optional
 
 # =====================
 # Base Paths
@@ -25,7 +27,7 @@ def bronze_path(dataset: str, variant: str = "full") -> Path:
 def bronze_output_path(dataset: str, variant: str, run_date: Optional[str] = None) -> Path:
     if run_date is None:
         run_date = datetime.now().strftime("%Y%m%d")
-    return Path(f"{BRONZE_DIR}/{dataset}/{variant}/{dataset}_raw_{run_date}.csv")
+    return Path(f"{BRONZE_DIR}/{dataset}/{variant}/{dataset}_raw_{run_date}.json")
 
 
 # =====================
@@ -49,11 +51,11 @@ def silver_metrics_path(dataset: str, version: str, variant: str = "full") -> Pa
 # =====================
 
 def gold_dim_path(version: str, table: str) -> Path:
-    return GOLD_DIR / version / "dim" / table
+    return GOLD_DIR / "dim" / table
 
 
 def gold_fact_path(version: str, table: str) -> Path:
-    return GOLD_DIR / version / "fact" / table
+    return GOLD_DIR / "fact" / table
 
 
 def gold_metrics_path(dataset: str, version: str, variant: str = "full") -> Path:

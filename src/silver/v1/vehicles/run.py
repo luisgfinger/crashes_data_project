@@ -1,9 +1,9 @@
 import pandas as pd
 
 from src.config import bronze_path, silver_path, silver_quarantine_path, silver_metrics_path
-from src.utils.io_utils import find_latest_csv, _assert_columns_exist, _write_parquet_overwrite
+from src.utils.io_utils import find_latest_json, _assert_columns_exist, _write_parquet_overwrite
 from src.silver.v1.vehicles.dq import apply_quality_rules_vehicles
-from src.metrics.metrics import _write_metrics_csv
+from src.metrics.metrics import _write_metrics_json
 
 BRONZE_DATASET = "vehicles"
 SILVER_DATASET = "vehicles" 
@@ -11,43 +11,24 @@ VERSION = "v1"
 PARTITION_COL = "run_date"
 
 TARGET_COLUMNS = [
-    "UNIQUE_ID",
-    "COLLISION_ID",
-    "VEHICLE_TYPE",
-    "VEHICLE_MAKE",
-    "VEHICLE_YEAR",
-    "STATE_REGISTRATION",
-    "VEHICLE_OCCUPANTS",
-    "VEHICLE_DAMAGE",
-    "VEHICLE_DAMAGE_1",
-    "VEHICLE_DAMAGE_2",
-    "VEHICLE_DAMAGE_3",
-    "PRE_CRASH",
-    "TRAVEL_DIRECTION",
-    "POINT_OF_IMPACT",
-    "CONTRIBUTING_FACTOR_1",
-    "CONTRIBUTING_FACTOR_2",
-
+    "unique_id",
+    "collision_id",
+    "vehicle_type",
+    "vehicle_make",
+    "vehicle_year",
+    "state_registration",
+    "vehicle_occupants",
+    "vehicle_damage",
+    "vehicle_damage_1",
+    "vehicle_damage_2",
+    "vehicle_damage_3",
+    "pre_crash",
+    "travel_direction",
+    "point_of_impact",
+    "contributing_factor_1",
+    "contributing_factor_2",
 ]
 
-RENAME_MAP = {
-    "UNIQUE_ID": "unique_id",
-    "COLLISION_ID": "collision_id",
-    "VEHICLE_TYPE": "vehicle_type",
-    "VEHICLE_MAKE": "vehicle_make",
-    "VEHICLE_YEAR": "vehicle_year",
-    "STATE_REGISTRATION": "state_registration",
-    "VEHICLE_OCCUPANTS": "vehicle_occupants",
-    "VEHICLE_DAMAGE": "vehicle_damage",
-    "VEHICLE_DAMAGE_1": "vehicle_damage_1",
-    "VEHICLE_DAMAGE_2": "vehicle_damage_2",
-    "VEHICLE_DAMAGE_3": "vehicle_damage_3",
-    "PRE_CRASH": "pre_crash",
-    "TRAVEL_DIRECTION": "travel_direction",
-    "POINT_OF_IMPACT": "point_of_impact",
-    "CONTRIBUTING_FACTOR_1": "contributing_factor_1",
-    "CONTRIBUTING_FACTOR_2": "contributing_factor_2",
-}
 
 NUMERIC_COLUMNS = [
     "unique_id",
@@ -63,13 +44,13 @@ def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None
     quarantine_dir = silver_quarantine_path(SILVER_DATASET, VERSION, variant)
     metrics_dir = silver_metrics_path(SILVER_DATASET, VERSION, variant)
 
-    bronze_file = find_latest_csv(bronze_dir)
+    bronze_file = find_latest_json(bronze_dir)
     print(f"Reading Bronze file: {bronze_file}")
 
-    df_raw = pd.read_csv(bronze_file, dtype="string", low_memory=False)
+    df_raw = pd.read_json(bronze_file, dtype="string", lines=True)
 
     _assert_columns_exist(df_raw, TARGET_COLUMNS)
-    df = df_raw[TARGET_COLUMNS].copy().rename(columns=RENAME_MAP)
+    df = df_raw[TARGET_COLUMNS].copy()
 
     for col in df.columns:
         if df[col].dtype == "string":
@@ -104,5 +85,5 @@ def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None
     print(f"Silver QUARANTINE written to: {quarantine_run_path}")
 
     metrics_run_path = metrics_dir / f"run_date={dq.run_date}"
-    _write_metrics_csv(metrics_run_path, dq.metrics_summary, dq.metrics_by_reason)
-    print(f"Metrics written to: {metrics_run_path / 'metrics.csv'}")
+    _write_metrics_json(metrics_run_path, dq.metrics_summary, dq.metrics_by_reason)
+    print(f"Metrics written to: {metrics_run_path / 'metrics.json'}")

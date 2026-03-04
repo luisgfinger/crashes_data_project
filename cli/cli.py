@@ -3,6 +3,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Callable, Dict, Optional, Tuple
 
+from api.s3_upload.s3_upload import upload_dir_to_s3
 from src.silver.v1.vehicles.run import run as run_silver_vehicles_v1
 from src.silver.v1.crashes.run import run as run_silver_crashes_v1
 
@@ -194,6 +195,16 @@ def run_gold(
 
     pipeline(run_date_str=run_date_str, variant=variant.value, dry_run=dry_run)
 
+    if not dry_run:
+        typer.echo("\nUploading GOLD outputs to S3...")
+
+        ok, fail = upload_dir_to_s3(
+            bucket="crashes-data-luis-007",
+            local_dir="data/gold",
+            prefix="dwh/gold"
+        )
+
+        typer.echo(f"Upload finished. Success: {ok} | Fails: {fail}")
 
 app.add_typer(bronze_app, name="bronze")
 app.add_typer(silver_app, name="silver")

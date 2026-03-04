@@ -1,22 +1,21 @@
+import os
 from pathlib import Path
 import pandas as pd
 import shutil
 import hashlib
 
+def find_latest_json(folder: Path) -> Path:
+    json_files = sorted(folder.glob("*.json"))
 
+    if not json_files:
+        raise FileNotFoundError(f"No json found in {folder}")
 
-def find_latest_csv(folder: Path) -> Path:
-    csv_files = sorted(folder.glob("*.csv"))
-
-    if not csv_files:
-        raise FileNotFoundError(f"No CSV found in {folder}")
-
-    return max(csv_files, key=lambda f: f.stat().st_mtime)
+    return max(json_files, key=lambda f: f.stat().st_mtime)
 
 def _assert_columns_exist(df: pd.DataFrame, required: list[str]) -> None:
     missing = [c for c in required if c not in df.columns]
     if missing:
-        raise KeyError(f"Missing required columns in Bronze CSV: {missing}")
+        raise KeyError(f"Missing required columns in Bronze json: {missing}")
     
 def _normalize_time_to_hhmm(s: pd.Series) -> pd.Series:
     def fix(x):
@@ -47,7 +46,7 @@ def _normalize_time_to_hhmm(s: pd.Series) -> pd.Series:
 
 def _rmtree_force(path: Path) -> None:
     def onerror(func, p, exc_info):
-        os.chmod(p, stat.S_IWRITE)
+        os.chmod(p, os.stat.S_IWRITE)
         func(p)
 
     shutil.rmtree(path, onerror=onerror)

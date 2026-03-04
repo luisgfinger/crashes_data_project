@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import requests
-from typing import Optional
+from typing import Optional, Iterator, List, Dict, Any
 
 NYC_OPEN_DATA_BASE = "https://data.cityofnewyork.us/resource"
 
@@ -21,43 +21,45 @@ class NYCOpenDataClient:
             headers["X-App-Token"] = self.app_token
         return headers
 
-    def download_csv_paged(
+    def download_json_paged(
         self,
         dataset: str,
         limit: int = 50000,
         where: Optional[str] = None,
         order: Optional[str] = None,
-    ):
-   
+    ) -> Iterator[List[Dict[str, Any]]]:
+
         if dataset not in DATASETS:
-            raise ValueError(f"Dataset inválido: {dataset}. Use: {list(DATASETS.keys())}")
+            raise ValueError(f"Invalid Dataset: {dataset}. Use: {list(DATASETS.keys())}")
 
         four_by_four = DATASETS[dataset]
-        url = f"{NYC_OPEN_DATA_BASE}/{four_by_four}.csv"
+        url = f"{NYC_OPEN_DATA_BASE}/{four_by_four}.json"
 
         offset = 0
-        first = True
 
         while True:
             params = {"$limit": limit, "$offset": offset}
+
             if where:
                 params["$where"] = where
+
             if order:
                 params["$order"] = order
 
-            r = requests.get(url, headers=self._headers(), params=params, timeout=self.timeout)
+            r = requests.get(
+                url,
+                headers=self._headers(),
+                params=params,
+                timeout=self.timeout,
+            )
+
             r.raise_for_status()
 
-            text = r.text.strip()
-            lines = text.splitlines()
+            batch = r.json()
 
-            if len(lines) <= 1:
+            if not batch:
                 break
 
-            if first:
-                yield "\n".join(lines) + "\n" 
-                first = False
-            else:
-                yield "\n".join(lines[1:]) + "\n"
+            yield batch
 
             offset += limit
