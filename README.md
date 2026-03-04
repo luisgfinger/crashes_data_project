@@ -1,94 +1,156 @@
 # Motor Vehicle Collisions – Data Engineering Pipeline
 
-This project implements a modular, production-oriented data engineering pipeline using the NYC Motor Vehicle Collisions datasets.
+This project implements a modular, production-oriented data engineering pipeline using the **NYC Motor Vehicle Collisions datasets**.
 
-The goal is to move beyond exploratory notebooks and design a reproducible, scalable, and layered data architecture following modern data engineering best practices.
+The goal is to move beyond exploratory notebooks and design a **reproducible, scalable, and layered data architecture** following modern data engineering best practices.
 
 ---
 
-# 🇺🇸 English Version (Versão em PT-BR mais abaixo)
+# 🇺🇸 English Version (Versão em PT-BR abaixo)
 
 ## Project Overview
 
-This repository implements a layered data lake architecture:
+This repository implements a **layered data lake architecture**:
 
+NYC Open Data API  
+↓  
 Bronze (Raw CSV)  
-        ↓  
+↓  
 Silver (Validated, Typed, Partitioned Parquet)  
-        ↓  
-Gold (Aggregations & Analytics – Planned)
+↓  
+Gold (Dimensional & Analytical Models)
 
-The pipeline is fully modular and CLI-driven, allowing multiple datasets and versions to coexist under a unified architecture.
+The pipeline is **fully modular and CLI-driven**, allowing multiple datasets and versions to coexist under a unified architecture.
 
-### Key Design Principles
+---
 
-- Schema contracts and explicit column validation
-- Dataset-level modular pipelines (vehicles, crashes)
-- Layered architecture (Bronze → Silver → Gold)
-- Partitioning strategy for performance and scalability
-- Reproducible execution via CLI
-- Variant-based output environments (full, incremental, backfill)
+# Architecture Overview
+
+```
+                ┌───────────────────────┐
+                │   NYC Open Data API   │
+                └─────────────┬─────────┘
+                              │
+                              ▼
+                     API Client Layer
+                        (api/)
+                              │
+                              ▼
+                    Bronze Ingestion Layer
+                        (src/bronze)
+                              │
+                              ▼
+                    Silver Processing Layer
+                        (src/silver)
+                              │
+                              ▼
+                     Gold Analytics Layer
+                        (src/gold)
+```
+
+---
+
+# Key Design Principles
+
+- **Layered Data Lake Architecture**
+- Dataset-level modular pipelines
+- **API ingestion abstraction layer**
+- Schema contracts and explicit validation
+- Reproducible CLI execution
+- Variant-based environments (`full`, `incremental`, `backfill`)
+- Partitioned datasets for scalability
+- Data quality validation
+- Quarantine isolation for invalid records
+- Metrics generation
 - AI-augmented development workflow
 
 ---
 
-## Supported Silver Pipelines
+# Data Source
 
-| Dataset  | Version | Description |
-|----------|----------|-------------|
-| vehicles | v1 | Vehicle-level dataset (1 row = 1 vehicle) |
-| crashes  | v1 | Crash-level dataset (1 row = 1 collision event) |
+Datasets come from **NYC Open Data**:
 
-Each dataset has its own independent Silver pipeline module.
-
----
-
-## CLI Execution
-
-The project uses a structured CLI with enum-based validation and registry-based dispatch.
-
-### Run Silver pipeline
-
-python -m src.cli silver run -d vehicles -v v1
-
-### Available options
-
--d, --dataset     vehicles | crashes  
--v, --version     v1  
---variant         full | incremental | backfill  
---run-date        YYYY-MM-DD  
---dry-run         simulate execution without writing output  
-
-### Example
-
-python -m src.cli silver run -d crashes -v v1 --variant incremental --run-date 2026-03-01
-
----
-
-## Dataset Sources
-
-Raw datasets are NOT included in this repository due to GitHub size limits.
-
-Download from NYC Open Data:
+Motor Vehicle Collisions – Crashes  
+https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95
 
 Motor Vehicle Collisions – Vehicles  
-[https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/h9gi-nx95](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/bm4k-52h4/data_preview)
+https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/bm4k-52h4
 
-After downloading:
+The Bronze ingestion pipeline retrieves data directly through the **Socrata API**.
 
-data/bronze/vehicles/full/
+To reduce ingestion time and storage footprint, the pipeline **only retrieves records from 2023 onward by default**.
+
+---
+
+# API Layer
+
+The project introduces a dedicated API client layer:
+
+```
+api/
+  nyc_open_data.py
+```
+
+Responsibilities:
+
+- Encapsulate Socrata API access
+- Handle pagination (`$limit`, `$offset`)
+- Support filtering (`$where`)
+- Support ordering (`$order`)
+- Return CSV chunks for streaming ingestion
+
+This design prevents **tight coupling between pipelines and external APIs**.
+
+Pipelines interact only with the **Bronze ingestion layer**, not directly with the API.
+
+---
+
+# Bronze Layer – Raw Ingestion
+
+The Bronze layer is responsible for **extracting raw data from the source API and storing it unchanged**.
+
+```
+src/bronze/
+  ingest_bronze.py
+  utils.py
+  v1/
+    crashes/
+      run.py
+    vehicles/
+      run.py
+```
+
+Responsibilities:
+
+- API data extraction
+- Raw CSV persistence
+- Dataset filtering
+- Pagination handling
+- Reproducible ingestion runs
+
+---
+
+## Bronze Storage Layout
+
+```
+data/bronze/<dataset>/<variant>/
+```
 
 Example:
 
-data/bronze/vehicles/full/vehicles_raw_YYYYMMDD.csv
+```
+data/bronze/vehicles/full/vehicles_raw_20260303.csv
+```
 
-The pipeline automatically detects the most recent file.
+Variants allow different ingestion strategies without changing the dataset structure.
 
 ---
 
-## Silver Layer – Processing Logic
+# Silver Layer – Data Processing
 
-Each Silver pipeline performs:
+The Silver layer performs **schema enforcement and data quality validation**.
+
+Responsibilities:
 
 1. Bronze file discovery  
 2. Schema validation  
@@ -104,183 +166,302 @@ Each Silver pipeline performs:
 
 ---
 
-## Dataset Granularity
+# Gold Layer – Analytics
 
-### Vehicles (v1)
-1 row = 1 vehicle involved in a collision  
-Partitioned by: run_date  
+The Gold layer provides **analytical models and dimensional tables**.
 
-### Crashes (v1)
-1 row = 1 collision event  
+Current implementations:
 
-Additional processing:
-- crash_date parsing
-- crash_time normalization
-- crash_year derived column
+```
+Gold/
+ ├── dim_vehicle
+ └── fact_crash
+```
 
-Partitioned by: crash_year  
+Outputs:
 
----
-
-## Data Quality Strategy
-
-- Invalid records are redirected to Quarantine  
-- Metrics generated per run  
-- Explicit rule-based validation  
-- Date and time normalization checks  
-- Type coercion with safe casting  
+```
+data/gold/v1/
+```
 
 ---
 
-## Execution Variants
+# Supported Datasets
 
-Silver output supports execution variants:
-
-silver/<dataset>/<version>/<variant>/
-
-Examples:
-
-silver/vehicles/v1/full/  
-silver/vehicles/v1/incremental/  
-silver/crashes/v1/backfill/  
-
-This allows environment separation without changing Bronze input.
+| Dataset | Description | Grain |
+|--------|-------------|-------|
+| crashes | collision-level dataset | 1 row = 1 crash |
+| vehicles | vehicle-level dataset | 1 row = 1 vehicle |
 
 ---
 
-## UML Documentation
+# CLI Execution
 
-UML diagrams are maintained in:
+The project uses a structured CLI built with **Typer**.
 
-docs/uml/
+All pipelines are executed through:
 
-Includes:
-- Component Diagram
-- Activity Diagram (Silver execution flow)
-
-These diagrams formalize system architecture and improve maintainability.
+```
+python -m src.cli
+```
 
 ---
 
-## Technologies Used
+## Bronze Execution
+
+Run ingestion from the API:
+
+```
+python -m src.cli bronze run -d crashes
+```
+
+or
+
+```
+python -m src.cli bronze run -d vehicles
+```
+
+### Options
+
+| Option | Description |
+|------|-------------|
+| `-d` | dataset |
+| `-v` | pipeline version |
+| `--variant` | full / incremental / backfill |
+| `--start-date` | ingestion lower bound |
+| `--run-date` | execution date |
+| `--dry-run` | simulate execution |
+
+Default ingestion scope:
+
+```
+start_date = 2023-01-01
+```
+
+---
+
+## Silver Execution
+
+```
+python -m src.cli silver run -d crashes -v v1
+```
+
+Example:
+
+```
+python -m src.cli silver run -d crashes -v v1 --variant incremental
+```
+
+---
+
+## Gold Execution
+
+```
+python -m src.cli gold run -d warehouse -v v1
+```
+
+---
+
+# Data Quality Strategy
+
+The pipeline implements explicit rule-based validation.
+
+Invalid records are redirected to:
+
+```
+data/silver_quarantine/
+```
+
+Metrics are written to:
+
+```
+data/metrics/
+```
+
+Metrics include:
+
+- row counts
+- invalid record counts
+- validation failures
+
+---
+
+# Partition Strategy
+
+| Layer | Partition |
+|------|-----------|
+| Bronze | none |
+| Silver Vehicles | run_date |
+| Silver Crashes | crash_year |
+| Gold | dataset dependent |
+
+---
+
+# Project Structure
+
+```
+api/
+  nyc_open_data.py
+
+src/
+  bronze/
+  silver/
+  gold/
+  metrics/
+  utils/
+
+data/
+  bronze/
+  silver/
+  gold/
+  silver_quarantine/
+  metrics/
+
+docs/
+notebooks/
+tests/
+```
+
+---
+
+# Technologies Used
 
 - Python 3.10+
 - Pandas
 - PyArrow
-- Typer (CLI)
-- Virtual Environment (venv)
+- Typer
+- Pytest
+- Socrata Open Data API
+- Virtual Environment
 - Git
-- AI-assisted development (Copilot & OpenAI)
+- AI-assisted development
 
 ---
 
-## Future Improvements
+# Future Improvements
 
-- Gold layer aggregations
-- Automated testing (pytest)
-- CI/CD integration
-- Logging framework
-- Incremental processing logic
-- Data contracts enforcement layer
+- Incremental ingestion strategy
+- Parallel Bronze ingestion
+- Data contracts enforcement
 - Metadata tracking
-- Orchestration integration (Prefect/Airflow)
+- Pipeline orchestration (Airflow / Prefect)
+- Structured logging
+- CI/CD automation
+- Data catalog integration
 
 ---
 
-## Learning Objectives
+# Learning Objectives
 
 This project practices:
 
-- Modular data pipeline architecture
-- Data lake layering principles
-- Schema contracts
-- Partitioning strategies
-- Reproducible execution patterns
-- CLI-driven orchestration
-- AI-augmented development workflows
+- Data lake architecture
+- API-based ingestion pipelines
+- Modular pipeline design
+- Schema enforcement
+- Data quality frameworks
+- Partition strategies
+- CLI orchestration
+- Reproducible data pipelines
+- AI-augmented development
 
 ---
 
 # 🇧🇷 Versão em Português
 
-## Visão Geral do Projeto
+## Visão Geral
 
-Este projeto implementa um pipeline modular e orientado a produção utilizando os datasets NYC Motor Vehicle Collisions.
+Este projeto implementa um pipeline de engenharia de dados modular utilizando os datasets **NYC Motor Vehicle Collisions**.
 
-A arquitetura segue o padrão em camadas:
+A arquitetura segue o padrão:
 
-Bronze (CSV bruto)  
+API NYC Open Data  
 ↓  
-Silver (Parquet validado, tipado e particionado)  
+Bronze (dados brutos)  
 ↓  
-Gold (Agregações e métricas – planejado)
-
-O pipeline é modular e executado via CLI, permitindo múltiplos datasets e versões sob uma arquitetura unificada.
+Silver (dados limpos e validados)  
+↓  
+Gold (modelos analíticos)
 
 ---
 
-## Princípios de Arquitetura
+## Camada API
 
-- Contrato de schema com validação explícita
-- Pipelines modulares por dataset (vehicles, crashes)
-- Arquitetura em camadas (Bronze → Silver → Gold)
-- Estratégia de particionamento para performance
-- Execução reproduzível via CLI
-- Separação por variantes (full, incremental, backfill)
-- Desenvolvimento assistido por IA
+A pasta `api/` contém o cliente responsável por acessar a API do NYC Open Data.
+
+Essa camada:
+
+- encapsula a lógica de acesso à API  
+- evita acoplamento entre pipelines e serviços externos  
+- implementa paginação e filtros  
+- fornece dados brutos para a camada Bronze  
 
 ---
 
-## Pipelines Silver Disponíveis
+## Camada Bronze
 
-| Dataset  | Versão | Descrição |
-|----------|--------|-----------|
-| vehicles | v1 | 1 linha = 1 veículo |
-| crashes  | v1 | 1 linha = 1 colisão |
+Responsável por **extrair os dados da API e armazená-los sem transformação**.
+
+Os dados são armazenados em CSV no formato:
+
+```
+data/bronze/<dataset>/<variant>/
+```
+
+Exemplo:
+
+```
+data/bronze/vehicles/full/vehicles_raw_20260303.csv
+```
+
+---
+
+## Camada Silver
+
+Realiza:
+
+- validação de schema  
+- normalização de colunas  
+- validação de qualidade  
+- geração de métricas  
+- separação de dados inválidos  
+
+---
+
+## Camada Gold
+
+Camada analítica com tabelas dimensionais e fatos.
 
 ---
 
 ## Execução via CLI
 
-python -m src.cli silver run -d vehicles -v v1
+Bronze:
 
-Opções disponíveis:
+```
+python -m src.cli bronze run -d crashes
+```
 
--d / --dataset  
--v / --version  
---variant  
---run-date  
---dry-run  
+Silver:
 
----
+```
+python -m src.cli silver run -d vehicles
+```
 
-## Granularidade
+Gold:
 
-### Vehicles
-1 linha = 1 veículo envolvido em colisão  
-Particionado por: run_date  
-
-### Crashes
-1 linha = 1 evento de colisão  
-Particionado por: crash_year  
-
----
-
-## Estratégia de Qualidade de Dados
-
-- Registros inválidos enviados para Quarantine  
-- Geração de métricas por execução  
-- Regras explícitas de validação  
-- Normalização de datas e horários  
-- Conversão segura de tipos  
+```
+python -m src.cli gold run
+```
 
 ---
 
 ## Objetivos de Aprendizado
 
-- Arquitetura de Data Lake
-- Contrato de schema
-- Estratégias de particionamento
-- Execução reproduzível
-- Estrutura modular
-- Desenvolvimento assistido por IA
+- Arquitetura de Data Lake  
+- Pipelines baseados em API  
+- Validação de schema  
+- Estratégias de particionamento  
+- Execução reproduzível  
+- Arquitetura modular  
+- Engenharia de dados moderna  
