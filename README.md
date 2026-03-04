@@ -18,9 +18,11 @@ Bronze (Raw CSV)
 ↓  
 Silver (Validated, Typed, Partitioned Parquet)  
 ↓  
-Gold (Dimensional & Analytical Models)
+Gold (Dimensional & Analytical Models)  
+↓  
+AWS S3 Data Lake
 
-The pipeline is **fully modular and CLI-driven**, allowing multiple datasets and versions to coexist under a unified architecture.
+The pipeline is **fully modular and CLI-driven**, allowing multiple datasets to coexist under a unified architecture.
 
 ---
 
@@ -46,6 +48,10 @@ The pipeline is **fully modular and CLI-driven**, allowing multiple datasets and
                               ▼
                      Gold Analytics Layer
                         (src/gold)
+                              │
+                              ▼
+                       AWS S3 Data Lake
+                (data_lake/bronze|silver|gold)
 ```
 
 ---
@@ -63,6 +69,7 @@ The pipeline is **fully modular and CLI-driven**, allowing multiple datasets and
 - Quarantine isolation for invalid records
 - Metrics generation
 - AI-augmented development workflow
+- Automated cloud synchronization to S3
 
 ---
 
@@ -181,7 +188,136 @@ Gold/
 Outputs:
 
 ```
-data/gold/v1/
+data/gold/
+```
+
+---
+
+# S3 Data Lake Integration
+
+After each pipeline execution, datasets can optionally be uploaded to **Amazon S3**.
+
+The CLI integrates an automated upload step that synchronizes local outputs with a structured **data lake layout in S3**.
+
+Local structure:
+
+```
+data/
+├── bronze/
+├── silver/
+└── gold/
+```
+
+S3 structure:
+
+```
+s3://<bucket>/data_lake/
+├── bronze/
+│   ├── vehicles/
+│   └── crashes/
+│
+├── silver/
+│   ├── vehicles/
+│   └── crashes/
+│
+└── gold/
+    ├── dims/
+    └── facts/
+```
+
+---
+
+## Upload Strategy
+
+The pipeline follows different upload strategies depending on the layer.
+
+| Layer | Upload Behavior |
+|------|----------------|
+| Bronze | Upload only the dataset executed |
+| Silver | Upload only the dataset executed |
+| Gold | Upload the entire Gold layer |
+
+This prevents unnecessary uploads while ensuring the analytical layer stays fully synchronized.
+
+---
+
+## Example Uploads
+
+Running:
+
+```
+python -m src.cli bronze run -d vehicles
+```
+
+Uploads:
+
+```
+data/bronze/vehicles/
+→
+s3://<bucket>/data_lake/bronze/vehicles/
+```
+
+Running:
+
+```
+python -m src.cli silver run -d crashes
+```
+
+Uploads:
+
+```
+data/silver/crashes/
+→
+s3://<bucket>/data_lake/silver/crashes/
+```
+
+Running:
+
+```
+python -m src.cli gold run
+```
+
+Uploads the full analytical layer:
+
+```
+data/gold/
+→
+s3://<bucket>/data_lake/gold/
+```
+
+---
+
+## S3 Configuration
+
+The CLI allows configuring the S3 destination.
+
+| Parameter | Description |
+|--------|-------------|
+| `--bucket` | Target S3 bucket |
+| `--prefix-root` | Root path in S3 |
+| `--profile` | AWS profile |
+
+Example:
+
+```
+python -m src.cli silver run -d vehicles \
+--bucket my-data-lake \
+--profile default
+```
+
+---
+
+## Default Configuration
+
+| Setting | Value |
+|-------|------|
+| Bucket | `crashes-data-luis-007` |
+| Root Prefix | `data_lake` |
+
+Resulting structure:
+
+```
+s3://crashes-data-luis-007/data_lake/
 ```
 
 ---
@@ -226,7 +362,6 @@ python -m src.cli bronze run -d vehicles
 | Option | Description |
 |------|-------------|
 | `-d` | dataset |
-| `-v` | pipeline version |
 | `--variant` | full / incremental / backfill |
 | `--start-date` | ingestion lower bound |
 | `--run-date` | execution date |
@@ -243,13 +378,13 @@ start_date = 2023-01-01
 ## Silver Execution
 
 ```
-python -m src.cli silver run -d crashes -v v1
+python -m src.cli silver run -d crashes
 ```
 
 Example:
 
 ```
-python -m src.cli silver run -d crashes -v v1 --variant incremental
+python -m src.cli silver run -d crashes --variant incremental
 ```
 
 ---
@@ -257,7 +392,7 @@ python -m src.cli silver run -d crashes -v v1 --variant incremental
 ## Gold Execution
 
 ```
-python -m src.cli gold run -d warehouse -v v1
+python -m src.cli gold run
 ```
 
 ---
@@ -297,33 +432,6 @@ Metrics include:
 
 ---
 
-# Project Structure
-
-```
-api/
-  nyc_open_data.py
-
-src/
-  bronze/
-  silver/
-  gold/
-  metrics/
-  utils/
-
-data/
-  bronze/
-  silver/
-  gold/
-  silver_quarantine/
-  metrics/
-
-docs/
-notebooks/
-tests/
-```
-
----
-
 # Technologies Used
 
 - Python 3.10+
@@ -332,6 +440,8 @@ tests/
 - Typer
 - Pytest
 - Socrata Open Data API
+- AWS S3
+- Boto3
 - Virtual Environment
 - Git
 - AI-assisted development
@@ -348,6 +458,9 @@ tests/
 - Structured logging
 - CI/CD automation
 - Data catalog integration
+- Automated S3 lifecycle management
+- Data lake versioning
+- Glue catalog integration
 
 ---
 
@@ -363,6 +476,7 @@ This project practices:
 - Partition strategies
 - CLI orchestration
 - Reproducible data pipelines
+- Cloud-based data lake architecture
 - AI-augmented development
 
 ---
@@ -381,7 +495,9 @@ Bronze (dados brutos)
 ↓  
 Silver (dados limpos e validados)  
 ↓  
-Gold (modelos analíticos)
+Gold (modelos analíticos)  
+↓  
+Data Lake no AWS S3
 
 ---
 
@@ -434,6 +550,21 @@ Camada analítica com tabelas dimensionais e fatos.
 
 ---
 
+## Integração com S3
+
+Após a execução dos pipelines, os dados podem ser enviados automaticamente para o **AWS S3**, formando um **Data Lake na nuvem**.
+
+Estrutura no S3:
+
+```
+data_lake/
+ ├── bronze/
+ ├── silver/
+ └── gold/
+```
+
+---
+
 ## Execução via CLI
 
 Bronze:
@@ -465,3 +596,4 @@ python -m src.cli gold run
 - Execução reproduzível  
 - Arquitetura modular  
 - Engenharia de dados moderna  
+- Integração com Data Lake em nuvem  
