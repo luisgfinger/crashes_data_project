@@ -7,7 +7,6 @@ from src.metrics.metrics import _write_metrics_json
 
 BRONZE_DATASET = "crashes"
 SILVER_DATASET = "crashes" 
-VERSION = "v1"
 PARTITION_COL = "run_date"
 
 TARGET_COLUMNS = [
@@ -40,9 +39,9 @@ NUMERIC_COLUMNS = [
 def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None:
 
     bronze_dir = bronze_path(BRONZE_DATASET)
-    silver_dir = silver_path(SILVER_DATASET, VERSION, variant)
-    quarantine_dir = silver_quarantine_path(SILVER_DATASET, VERSION, variant)
-    metrics_dir = silver_metrics_path(SILVER_DATASET, VERSION, variant)
+    silver_dir = silver_path(SILVER_DATASET, variant)
+    quarantine_dir = silver_quarantine_path(SILVER_DATASET, variant)
+    metrics_dir = silver_metrics_path(SILVER_DATASET, variant)
 
     bronze_file = find_latest_json(bronze_dir)
     print(f"Reading Bronze file: {bronze_file}")

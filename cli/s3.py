@@ -7,8 +7,8 @@ app = typer.Typer(help="Upload files to AWS S3")
 @app.command()
 def upload(
     bucket: str = typer.Option("crashes-data-luis-007", "--bucket", "-b"),
-    local_dir: str = typer.Option("data/gold", "--local-dir", "-d"),
-    prefix: str = typer.Option("dwh/gold", "--prefix", "-p"),
+    local_dir: str = typer.Option("data/", "--local-dir", "-d"),
+    prefix: str = typer.Option("data_lake/", "--prefix", "-p"),
     profile: str = typer.Option("", "--profile"),
 ):
 

@@ -34,29 +34,29 @@ def bronze_output_path(dataset: str, variant: str, run_date: Optional[str] = Non
 # Silver
 # =====================
 
-def silver_path(dataset: str, version: str, variant: str = "full") -> Path:
-    return SILVER_DIR / version / dataset / variant
+def silver_path(dataset: str, variant: str = "full") -> Path:
+    return SILVER_DIR / dataset / variant
 
 
-def silver_quarantine_path(dataset: str, version: str, variant: str = "full") -> Path:
-    return SILVER_QUARANTINE_DIR / version / dataset / variant
+def silver_quarantine_path(dataset: str, variant: str = "full") -> Path:
+    return SILVER_QUARANTINE_DIR / dataset / variant
 
 
-def silver_metrics_path(dataset: str, version: str, variant: str = "full") -> Path:
-    return METRICS_DIR / "silver" / version / dataset / variant
+def silver_metrics_path(dataset: str, variant: str = "full") -> Path:
+    return METRICS_DIR / "silver" / dataset / variant
 
 
 # =====================
 # Gold
 # =====================
 
-def gold_dim_path(version: str, table: str) -> Path:
+def gold_dim_path(table: str) -> Path:
     return GOLD_DIR / "dim" / table
 
 
-def gold_fact_path(version: str, table: str) -> Path:
+def gold_fact_path(table: str) -> Path:
     return GOLD_DIR / "fact" / table
 
 
-def gold_metrics_path(dataset: str, version: str, variant: str = "full") -> Path:
-    return METRICS_DIR / "gold" / dataset / version / variant
+def gold_metrics_path(dataset: str, variant: str = "full") -> Path:
+    return METRICS_DIR / "gold" / dataset / variant

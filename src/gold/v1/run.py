@@ -7,14 +7,13 @@ from src.utils.io_utils import _write_parquet_overwrite
 from src.gold.v1.dims.dim_vehicle import build_dim_vehicle
 from src.gold.v1.facts.fact_crash import build_fact_crash
 
-VERSION = "v1"
 PARTITION_COL = "run_date"
 
 
 def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None:
 
-    vehicles_dir = silver_path("vehicles", VERSION, variant) / f"run_date={run_date_str}"
-    crashes_dir = silver_path("crashes", VERSION, variant) / f"run_date={run_date_str}"
+    vehicles_dir = silver_path("vehicles", variant) / f"run_date={run_date_str}"
+    crashes_dir = silver_path("crashes", variant) / f"run_date={run_date_str}"
 
     print(f"Reading Silver vehicles: {vehicles_dir}")
     print(f"Reading Silver crashes:  {crashes_dir}")
@@ -37,10 +36,10 @@ def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None
         print("[DRY-RUN] Skipping writes.")
         return
 
-    dim_out = gold_dim_path(VERSION, "dim_vehicle")
+    dim_out = gold_dim_path("dim_vehicle")
     _write_parquet_overwrite(dim_out, dim_vehicle)
     print(f"dim_vehicle written to: {dim_out}")
 
-    fact_out = gold_fact_path(VERSION, "fact_crash")
+    fact_out = gold_fact_path("fact_crash")
     _write_parquet_overwrite(fact_out, fact_crash, partition_cols=[PARTITION_COL])
     print(f"fact_crash written to: {fact_out}")

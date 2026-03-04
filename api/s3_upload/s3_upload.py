@@ -12,8 +12,8 @@ def s3_key_for(file_path: Path, base_dir: Path, prefix: str) -> str:
 
 def upload_dir_to_s3(
     bucket: str,
-    local_dir: str = "data/gold",
-    prefix: str = "dwh/gold",
+    local_dir: str = "data",
+    prefix: str = "data_lake",
     profile: str = "",
 ) -> Tuple[int, int]:
 
