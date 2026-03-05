@@ -4,13 +4,27 @@ import pandas as pd
 import shutil
 import hashlib
 
-def find_latest_json(folder: Path) -> Path:
-    json_files = sorted(folder.glob("*.json"))
+from pathlib import Path
+import pandas as pd
 
-    if not json_files:
-        raise FileNotFoundError(f"No json found in {folder}")
+def find_latest_parquet(folder: Path) -> Path:
 
-    return max(json_files, key=lambda f: f.stat().st_mtime)
+    folder = Path(folder)
+    parquet_files = list(folder.glob("*.parquet"))
+
+    if parquet_files:
+        return max(parquet_files, key=lambda f: f.stat().st_mtime)
+    candidates = []
+    for p in folder.iterdir():
+        if p.is_dir():
+            fp = p / "data.parquet"
+            if fp.exists() and fp.is_file():
+                candidates.append(fp)
+
+    if not candidates:
+        raise FileNotFoundError(f"No parquet found in {folder}")
+
+    return max(candidates, key=lambda f: f.stat().st_mtime)
 
 def _assert_columns_exist(df: pd.DataFrame, required: list[str]) -> None:
     missing = [c for c in required if c not in df.columns]

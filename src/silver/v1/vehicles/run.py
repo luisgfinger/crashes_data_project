@@ -1,13 +1,18 @@
+from __future__ import annotations
+
+from pathlib import Path
 import pandas as pd
 
 from src.config import bronze_path, silver_path, silver_quarantine_path, silver_metrics_path
-from src.utils.io_utils import find_latest_json, _assert_columns_exist, _write_parquet_overwrite
+from src.utils.io_utils import find_latest_parquet, _assert_columns_exist, _write_parquet_overwrite
 from src.silver.v1.vehicles.dq import apply_quality_rules_vehicles
 from src.metrics.metrics import _write_metrics_json
 
+
 BRONZE_DATASET = "vehicles"
-SILVER_DATASET = "vehicles" 
+SILVER_DATASET = "vehicles"
 PARTITION_COL = "run_date"
+
 
 TARGET_COLUMNS = [
     "unique_id",
@@ -36,24 +41,28 @@ NUMERIC_COLUMNS = [
     "vehicle_occupants",
 ]
 
+
+def read_bronze_df(bronze_dir: Path) -> pd.DataFrame:
+    parquet_file = find_latest_parquet(bronze_dir)
+    print(f"Reading Bronze parquet: {parquet_file}")
+    return pd.read_parquet(parquet_file, engine="pyarrow")
+
+
 def run(run_date_str: str, variant: str = "full", dry_run: bool = False) -> None:
-    
-    bronze_dir = bronze_path(BRONZE_DATASET) 
+
+    bronze_dir = bronze_path(BRONZE_DATASET)
     silver_dir = silver_path(SILVER_DATASET, variant)
     quarantine_dir = silver_quarantine_path(SILVER_DATASET, variant)
     metrics_dir = silver_metrics_path(SILVER_DATASET, variant)
 
-    bronze_file = find_latest_json(bronze_dir)
-    print(f"Reading Bronze file: {bronze_file}")
-
-    df_raw = pd.read_json(bronze_file, dtype="string", lines=True)
+    df_raw = read_bronze_df(bronze_dir)
 
     _assert_columns_exist(df_raw, TARGET_COLUMNS)
     df = df_raw[TARGET_COLUMNS].copy()
 
     for col in df.columns:
-        if df[col].dtype == "string":
-            df[col] = df[col].str.strip()
+        if df[col].dtype == "object" or str(df[col].dtype) == "string":
+            df[col] = df[col].astype("string").str.strip()
 
     for col in NUMERIC_COLUMNS:
         if col in df.columns:

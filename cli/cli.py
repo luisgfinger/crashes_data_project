@@ -79,7 +79,6 @@ def _upload_dataset_to_s3_if_enabled(
     prefix_root: str,
     profile: str,
 ) -> None:
-    """Uploads only: data/<layer>/<dataset> -> s3://bucket/<prefix_root>/<layer>/<dataset>"""
     if dry_run:
         return
 
@@ -103,7 +102,6 @@ def _upload_layer_to_s3_if_enabled(
     prefix_root: str,
     profile: str,
 ) -> None:
-    """Uploads entire layer: data/<layer> -> s3://bucket/<prefix_root>/<layer>"""
     if dry_run:
         return
 
