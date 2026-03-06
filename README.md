@@ -130,7 +130,7 @@ src/bronze/
 Responsibilities:
 
 - API data extraction
-- Raw CSV persistence
+- Raw Jsonl persistence
 - Dataset filtering
 - Pagination handling
 - Reproducible ingestion runs
@@ -195,7 +195,7 @@ data/gold/
 
 # S3 Data Lake Integration
 
-After each pipeline execution, datasets can optionally be uploaded to **Amazon S3**.
+After each pipeline execution, the datasets are uploaded to **Amazon S3**.
 
 The CLI integrates an automated upload step that synchronizes local outputs with a structured **data lake layout in S3**.
 
@@ -246,7 +246,7 @@ This prevents unnecessary uploads while ensuring the analytical layer stays full
 Running:
 
 ```
-python -m src.cli bronze run -d vehicles
+python -m cli.cli bronze run -d vehicles
 ```
 
 Uploads:
@@ -260,7 +260,7 @@ s3://<bucket>/data_lake/bronze/vehicles/
 Running:
 
 ```
-python -m src.cli silver run -d crashes
+python -m cli.cli silver run -d crashes
 ```
 
 Uploads:
@@ -274,7 +274,7 @@ s3://<bucket>/data_lake/silver/crashes/
 Running:
 
 ```
-python -m src.cli gold run
+python -m cli.cli gold run
 ```
 
 Uploads the full analytical layer:
@@ -338,7 +338,7 @@ The project uses a structured CLI built with **Typer**.
 All pipelines are executed through:
 
 ```
-python -m src.cli
+python -m cli.cli
 ```
 
 ---
@@ -348,13 +348,13 @@ python -m src.cli
 Run ingestion from the API:
 
 ```
-python -m src.cli bronze run -d crashes
+python -m cli.cli bronze run -d crashes
 ```
 
 or
 
 ```
-python -m src.cli bronze run -d vehicles
+python -m cli.cli bronze run -d vehicles
 ```
 
 ### Options
@@ -378,13 +378,13 @@ start_date = 2023-01-01
 ## Silver Execution
 
 ```
-python -m src.cli silver run -d crashes
+python -m cli.cli silver run -d crashes
 ```
 
 Example:
 
 ```
-python -m src.cli silver run -d crashes --variant incremental
+python -m cli.cli silver run -d crashes --variant incremental
 ```
 
 ---
@@ -392,7 +392,7 @@ python -m src.cli silver run -d crashes --variant incremental
 ## Gold Execution
 
 ```
-python -m src.cli gold run
+python -m cli.cli gold run
 ```
 
 ---
@@ -570,19 +570,19 @@ data_lake/
 Bronze:
 
 ```
-python -m src.cli bronze run -d crashes
+python -m cli.cli bronze run -d crashes
 ```
 
 Silver:
 
 ```
-python -m src.cli silver run -d vehicles
+python -m cli.cli silver run -d vehicles
 ```
 
 Gold:
 
 ```
-python -m src.cli gold run
+python -m cli.cli gold run
 ```
 
 ---
