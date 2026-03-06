@@ -43,4 +43,6 @@ def run(run_date_str: str, variant: str, dry_run: bool, start_date: str) -> None
 
     _write_parquet_overwrite(parquet_path, df)
 
+    jsonl_path.unlink()
+
     typer.echo(f"[BRONZE] Parquet written at: {parquet_path}")
