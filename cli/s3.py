@@ -1,5 +1,5 @@
 import typer
-from api.s3_upload.s3_upload import upload_dir_to_s3
+from api.aws.s3.upload import upload_dir_to_s3
 
 app = typer.Typer(help="Upload files to AWS S3")
 

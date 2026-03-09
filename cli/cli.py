@@ -3,7 +3,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Callable, Dict, Optional
 
-from api.s3_upload.s3_upload import upload_dir_to_s3
+from api.aws.s3.upload import upload_dir_to_s3
 from src.silver.v1.vehicles.run import run as run_silver_vehicles_v1
 from src.silver.v1.crashes.run import run as run_silver_crashes_v1
 from src.gold.v1.run import run as run_gold_v1
