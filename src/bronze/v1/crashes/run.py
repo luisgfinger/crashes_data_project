@@ -34,7 +34,7 @@ def run(run_date_str: str, variant: str, dry_run: bool, start_date: str) -> None
     jsonl_path = Path(jsonl_path_str)
     typer.echo(f"[BRONZE] JSONL written: {jsonl_path}")
 
-    df = pd.read_json(jsonl_path, lines=True)
+    df = pd.read_json(jsonl_path, lines=True, convert_dates=False)
 
     typer.echo(f"[BRONZE] rows loaded into df: {len(df):,}")
 

@@ -37,7 +37,6 @@ def build_fact_crash(
         "number_of_motorist_killed",
         "total_vehicles",
         "total_occupants",
-        "run_date",
     ]
     cols = [c for c in cols if c in out.columns]
     return out[cols].copy()

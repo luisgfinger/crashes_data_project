@@ -7,6 +7,8 @@ import hashlib
 from pathlib import Path
 import pandas as pd
 
+from src.config import BRONZE_DIR, SILVER_DIR
+
 def find_latest_parquet(folder: Path) -> Path:
 
     folder = Path(folder)
@@ -25,6 +27,13 @@ def find_latest_parquet(folder: Path) -> Path:
         raise FileNotFoundError(f"No parquet found in {folder}")
 
     return max(candidates, key=lambda f: f.stat().st_mtime)
+
+def bronze_parquet_path(dataset: str, variant: str, run_date: str) -> Path:                                                                
+    run_date_compact = run_date.replace("-", "")                                                                                           
+    return BRONZE_DIR / dataset / variant / f"raw_{run_date_compact}.parquet"                                                              
+                                                                                                                                             
+def silver_partition_path(dataset: str, variant: str, run_date: str) -> Path:                                                              
+    return SILVER_DIR / dataset / variant / f"run_date={run_date}"    
 
 def _assert_columns_exist(df: pd.DataFrame, required: list[str]) -> None:
     missing = [c for c in required if c not in df.columns]
@@ -80,7 +89,15 @@ def _write_parquet_overwrite(path, df: pd.DataFrame, partition_cols=None) -> Non
     else:
         df.to_parquet(path / "data.parquet", engine="pyarrow", index=False)
 
-
+def write_partition_overwrite(target_dir: Path, df: pd.DataFrame) -> None:                                                                 
+      target_dir = Path(target_dir)                                                                                                          
+                                                                                                                                             
+      if target_dir.exists():                                                                                                                
+          shutil.rmtree(target_dir)                                                                                                          
+                                                                                                                                             
+      target_dir.mkdir(parents=True, exist_ok=True)                                                                                          
+      df.to_parquet(target_dir / "data.parquet", engine="pyarrow", index=False)
+      
 def _hash_int64(s: str) -> int:
     h = hashlib.md5(s.encode("utf-8")).hexdigest()
     return int(h[:12], 16)
