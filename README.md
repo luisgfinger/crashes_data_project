@@ -1,599 +1,316 @@
-# Motor Vehicle Collisions – Data Engineering Pipeline
+# Crashes Data Project
 
-This project implements a modular, production-oriented data engineering pipeline using the **NYC Motor Vehicle Collisions datasets**.
+This repository contains a local, CLI-driven data engineering pipeline for the NYC Motor Vehicle Collisions datasets. It ingests raw records from NYC Open Data, transforms them through Bronze, Silver, and Gold layers, writes the results to a local data lake under `data/`, and can upload those outputs to Amazon S3 after each run.
 
-The goal is to move beyond exploratory notebooks and design a **reproducible, scalable, and layered data architecture** following modern data engineering best practices.
+## Current Scope
 
----
+- Two source datasets are implemented: `crashes` and `vehicles`.
+- Bronze, Silver, and Gold pipelines live under `src/`.
+- The public entry point is the Typer CLI in `cli/cli.py`.
+- The Socrata client lives in `api/source_nyc/nyc_open_data.py`.
+- S3 uploads are handled by `api/aws/s3/upload.py`.
+- AWS Glue helper scripts exist under `api/aws/glue/`.
+- Exploration notebooks live under `notebooks/`.
 
-# 🇺🇸 English Version (Versão em PT-BR abaixo)
+## Data Source
 
-## Project Overview
+The project reads directly from NYC Open Data:
 
-This repository implements a **layered data lake architecture**:
+- Crashes: https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95
+- Vehicles: https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/bm4k-52h4
 
-NYC Open Data API  
-↓  
-Bronze (Raw CSV)  
-↓  
-Silver (Validated, Typed, Partitioned Parquet)  
-↓  
-Gold (Dimensional & Analytical Models)  
-↓  
-AWS S3 Data Lake
+The API client uses the Socrata JSON endpoint with paging via `$limit` and `$offset`, plus optional `$where` and `$order` clauses.
 
-The pipeline is **fully modular and CLI-driven**, allowing multiple datasets to coexist under a unified architecture.
+## Architecture
 
----
-
-# Architecture Overview
-
-```
-                ┌───────────────────────┐
-                │   NYC Open Data API   │
-                └─────────────┬─────────┘
-                              │
-                              ▼
-                     API Client Layer
-                        (api/)
-                              │
-                              ▼
-                    Bronze Ingestion Layer
-                        (src/bronze)
-                              │
-                              ▼
-                    Silver Processing Layer
-                        (src/silver)
-                              │
-                              ▼
-                     Gold Analytics Layer
-                        (src/gold)
-                              │
-                              ▼
-                       AWS S3 Data Lake
-                (data_lake/bronze|silver|gold)
+```text
+NYC Open Data API
+  -> Bronze ingestion
+  -> Silver validation and typing
+  -> Gold analytical models
+  -> Optional S3 upload
+  -> Optional AWS Glue helpers for Gold datasets
 ```
 
----
+## Repository Layout
 
-# Key Design Principles
-
-- **Layered Data Lake Architecture**
-- Dataset-level modular pipelines
-- **API ingestion abstraction layer**
-- Schema contracts and explicit validation
-- Reproducible CLI execution
-- Variant-based environments (`full`, `incremental`, `backfill`)
-- Partitioned datasets for scalability
-- Data quality validation
-- Quarantine isolation for invalid records
-- Metrics generation
-- AI-augmented development workflow
-- Automated cloud synchronization to S3
-
----
-
-# Data Source
-
-Datasets come from **NYC Open Data**:
-
-Motor Vehicle Collisions – Crashes  
-https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95
-
-Motor Vehicle Collisions – Vehicles  
-https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/bm4k-52h4
-
-The Bronze ingestion pipeline retrieves data directly through the **Socrata API**.
-
-To reduce ingestion time and storage footprint, the pipeline **only retrieves records from 2023 onward by default**.
-
----
-
-# API Layer
-
-The project introduces a dedicated API client layer:
-
-```
+```text
 api/
-  nyc_open_data.py
+  aws/
+    glue/
+    s3/
+  source_nyc/
+cli/
+  cli.py
+notebooks/
+src/
+  bronze/
+  gold/
+  metrics/
+  silver/
+  utils/
+requirements.txt
+requirements-dev.txt
+README.md
 ```
 
-Responsibilities:
+## Local Storage Layout
 
-- Encapsulate Socrata API access
-- Handle pagination (`$limit`, `$offset`)
-- Support filtering (`$where`)
-- Support ordering (`$order`)
-- Return CSV chunks for streaming ingestion
+Generated data is written under `data/`, which is gitignored.
 
-This design prevents **tight coupling between pipelines and external APIs**.
+### Bronze
 
-Pipelines interact only with the **Bronze ingestion layer**, not directly with the API.
+Bronze runs download paged JSON from the source API, write a temporary JSON file, convert it to Parquet, and then delete the temporary JSON file.
 
----
+Final Bronze output:
 
-# Bronze Layer – Raw Ingestion
-
-The Bronze layer is responsible for **extracting raw data from the source API and storing it unchanged**.
-
-```
-src/bronze/
-  ingest_bronze.py
-  utils.py
-  v1/
-    crashes/
-      run.py
-    vehicles/
-      run.py
+```text
+data/bronze/<dataset>/<variant>/raw_YYYYMMDD.parquet
 ```
 
-Responsibilities:
+Examples:
 
-- API data extraction
-- Raw Jsonl persistence
-- Dataset filtering
-- Pagination handling
-- Reproducible ingestion runs
-
----
-
-## Bronze Storage Layout
-
-```
-data/bronze/<dataset>/<variant>/
+```text
+data/bronze/crashes/full/raw_20260310.parquet
+data/bronze/vehicles/incremental/raw_20260310.parquet
 ```
 
-Example:
+### Silver
 
-```
-data/bronze/vehicles/full/vehicles_raw_20260303.csv
-```
+Clean Silver output is partitioned by `run_date`:
 
-Variants allow different ingestion strategies without changing the dataset structure.
-
----
-
-# Silver Layer – Data Processing
-
-The Silver layer performs **schema enforcement and data quality validation**.
-
-Responsibilities:
-
-1. Bronze file discovery  
-2. Schema validation  
-3. Column selection & renaming  
-4. snake_case normalization  
-5. String trimming  
-6. Safe type casting  
-7. Derived column creation  
-8. Data Quality validation  
-9. Clean vs. Quarantine separation  
-10. Partitioned Parquet writing  
-11. Metrics generation  
-
----
-
-# Gold Layer – Analytics
-
-The Gold layer provides **analytical models and dimensional tables**.
-
-Current implementations:
-
-```
-Gold/
- ├── dim_vehicle
- └── fact_crash
+```text
+data/silver/<dataset>/<variant>/run_date=YYYY-MM-DD/data.parquet
 ```
 
-Outputs:
+Quarantine output:
 
-```
-data/gold/
-```
-
----
-
-# S3 Data Lake Integration
-
-After each pipeline execution, the datasets are uploaded to **Amazon S3**.
-
-The CLI integrates an automated upload step that synchronizes local outputs with a structured **data lake layout in S3**.
-
-Local structure:
-
-```
-data/
-├── bronze/
-├── silver/
-└── gold/
+```text
+data/silver_quarantine/<dataset>/<variant>/run_date=YYYY-MM-DD/data.parquet
 ```
 
-S3 structure:
+Metrics output:
 
-```
-s3://<bucket>/data_lake/
-├── bronze/
-│   ├── vehicles/
-│   └── crashes/
-│
-├── silver/
-│   ├── vehicles/
-│   └── crashes/
-│
-└── gold/
-    ├── dims/
-    └── facts/
+```text
+data/metrics/silver/<dataset>/<variant>/run_date=YYYY-MM-DD/metrics.json
 ```
 
----
+### Gold
 
-## Upload Strategy
+Gold currently writes two datasets:
 
-The pipeline follows different upload strategies depending on the layer.
-
-| Layer | Upload Behavior |
-|------|----------------|
-| Bronze | Upload only the dataset executed |
-| Silver | Upload only the dataset executed |
-| Gold | Upload the entire Gold layer |
-
-This prevents unnecessary uploads while ensuring the analytical layer stays fully synchronized.
-
----
-
-## Example Uploads
-
-Running:
-
-```
-python -m cli.cli bronze run -d vehicles
+```text
+data/gold/dim/dim_vehicle/data.parquet
+data/gold/fact/fact_crash/run_date=YYYY-MM-DD/data.parquet
 ```
 
-Uploads:
+## Pipeline Behavior
 
-```
-data/bronze/vehicles/
-→
-s3://<bucket>/data_lake/bronze/vehicles/
-```
+### Bronze layer
 
-Running:
+Implemented pipelines:
 
-```
-python -m cli.cli silver run -d crashes
-```
+- `src/bronze/v1/crashes/run.py`
+- `src/bronze/v1/vehicles/run.py`
 
-Uploads:
+Current behavior:
 
-```
-data/silver/crashes/
-→
-s3://<bucket>/data_lake/silver/crashes/
-```
+- Pulls data from the Socrata API.
+- Filters source records with `crash_date >= <start_date>T00:00:00.000`.
+- Orders extraction by `crash_date`.
+- Stores one Bronze Parquet file per dataset, variant, and run date.
+- Supports `full`, `incremental`, and `backfill` variants through directory layout.
 
-Running:
+Default Bronze lower bound:
 
-```
-python -m cli.cli gold run
+```text
+2023-01-01
 ```
 
-Uploads the full analytical layer:
+### Silver layer
 
-```
-data/gold/
-→
-s3://<bucket>/data_lake/gold/
-```
+Implemented pipelines:
 
----
+- `src/silver/v1/crashes/run.py`
+- `src/silver/v1/vehicles/run.py`
 
-## S3 Configuration
+Current behavior:
 
-The CLI allows configuring the S3 destination.
+- Reads the Bronze Parquet file for the exact `run_date` and `variant` requested in the CLI.
+- Selects a fixed set of columns for each dataset.
+- Trims string fields and casts numeric fields to nullable integer types where applicable.
+- Applies rule-based data quality checks.
+- Splits records into clean, quarantine, and discard flows.
+- Writes clean data, quarantine data, and run metrics.
 
-| Parameter | Description |
-|--------|-------------|
-| `--bucket` | Target S3 bucket |
-| `--prefix-root` | Root path in S3 |
-| `--profile` | AWS profile |
+Crash rules currently include:
 
-Example:
+- invalid or future `crash_date`
+- negative injury or fatality counts
+- inconsistent injured and killed subtotal breakdowns
+- discard when `collision_id` is missing
 
-```
-python -m src.cli silver run -d vehicles \
---bucket my-data-lake \
---profile default
-```
+Vehicle rules currently include:
 
----
+- invalid `vehicle_year` range
+- missing or negative `vehicle_occupants`
+- discard when `unique_id` or `collision_id` is missing
 
-## Default Configuration
+### Gold layer
 
-| Setting | Value |
-|-------|------|
-| Bucket | `crashes-data-luis-007` |
-| Root Prefix | `data_lake` |
+Implemented pipeline:
 
-Resulting structure:
+- `src/gold/v1/run.py`
 
-```
-s3://crashes-data-luis-007/data_lake/
-```
+Current behavior:
 
----
+- Reads Silver `vehicles` and `crashes` partitions for the same `run_date` and `variant`.
+- Builds `dim_vehicle` from normalized `vehicle_make` and `vehicle_type` combinations.
+- Builds `fact_crash` at crash grain, enriched with total vehicles and total occupants.
+- Writes `fact_crash` partitioned by `run_date` in the directory layout, not as a persisted `run_date` column in the output table.
 
-# Supported Datasets
+## CLI Usage
 
-| Dataset | Description | Grain |
-|--------|-------------|-------|
-| crashes | collision-level dataset | 1 row = 1 crash |
-| vehicles | vehicle-level dataset | 1 row = 1 vehicle |
+The main entry point is:
 
----
-
-# CLI Execution
-
-The project uses a structured CLI built with **Typer**.
-
-All pipelines are executed through:
-
-```
+```bash
 python -m cli.cli
 ```
 
----
+### Install dependencies
 
-## Bronze Execution
+Tracked runtime dependencies:
 
-Run ingestion from the API:
-
+```bash
+pip install -r requirements.txt
 ```
+
+Tracked development dependencies:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+The NYC Open Data client imports `requests`, but `requirements.txt` does not currently list it. If it is missing in your environment, install it explicitly:
+
+```bash
+pip install requests
+```
+
+### Bronze commands
+
+```bash
 python -m cli.cli bronze run -d crashes
+python -m cli.cli bronze run -d vehicles --variant incremental --run-date 2026-03-10
+python -m cli.cli bronze run -d crashes --start-date 2024-01-01
 ```
 
-or
+Available Bronze options:
 
-```
-python -m cli.cli bronze run -d vehicles
-```
+- `--dataset` / `-d`: `vehicles` or `crashes`
+- `--variant`: `full`, `incremental`, or `backfill`
+- `--start-date`: lower bound for `crash_date`, default `2023-01-01`
+- `--run-date`: execution date in `YYYY-MM-DD`
+- `--dry-run`: validate parameters and skip writes
+- `--bucket`: target S3 bucket
+- `--prefix-root`: S3 prefix root
+- `--profile`: optional AWS profile
 
-### Options
+### Silver commands
 
-| Option | Description |
-|------|-------------|
-| `-d` | dataset |
-| `--variant` | full / incremental / backfill |
-| `--start-date` | ingestion lower bound |
-| `--run-date` | execution date |
-| `--dry-run` | simulate execution |
-
-Default ingestion scope:
-
-```
-start_date = 2023-01-01
+```bash
+python -m cli.cli silver run -d crashes --run-date 2026-03-10
+python -m cli.cli silver run -d vehicles --variant full --run-date 2026-03-10
 ```
 
----
+Available Silver options:
 
-## Silver Execution
+- `--dataset` / `-d`: `vehicles` or `crashes`
+- `--variant`: `full`, `incremental`, or `backfill`
+- `--run-date`: execution date in `YYYY-MM-DD`
+- `--dry-run`: validate parameters and skip writes
+- `--bucket`: target S3 bucket
+- `--prefix-root`: S3 prefix root
+- `--profile`: optional AWS profile
 
-```
-python -m cli.cli silver run -d crashes
-```
+### Gold commands
 
-Example:
-
-```
-python -m cli.cli silver run -d crashes --variant incremental
-```
-
----
-
-## Gold Execution
-
-```
-python -m cli.cli gold run
+```bash
+python -m cli.cli gold run --run-date 2026-03-10
+python -m cli.cli gold run -d data_lake --variant full --run-date 2026-03-10
 ```
 
----
+Available Gold options:
 
-# Data Quality Strategy
+- `--dataset` / `-d`: only `data_lake` is currently supported
+- `--variant`: `full`, `incremental`, or `backfill`
+- `--run-date`: execution date in `YYYY-MM-DD`
+- `--dry-run`: validate parameters and skip writes
+- `--bucket`: target S3 bucket
+- `--prefix-root`: S3 prefix root
+- `--profile`: optional AWS profile
 
-The pipeline implements explicit rule-based validation.
+Gold requires both Silver datasets for the same `run_date` and `variant` to exist before it can run successfully.
 
-Invalid records are redirected to:
+## S3 Upload Behavior
 
-```
-data/silver_quarantine/
-```
+S3 upload is built into the main CLI commands and runs automatically unless `--dry-run` is used.
 
-Metrics are written to:
+Defaults from `cli/cli.py`:
 
-```
-data/metrics/
-```
+- bucket: `crashes-data-luis-007`
+- prefix root: `data_lake`
 
-Metrics include:
+Upload behavior by layer:
 
-- row counts
-- invalid record counts
-- validation failures
+- Bronze uploads only `data/bronze/<dataset>`
+- Silver uploads only `data/silver/<dataset>`
+- Gold uploads the entire `data/gold`
 
----
+Examples:
 
-# Partition Strategy
-
-| Layer | Partition |
-|------|-----------|
-| Bronze | none |
-| Silver Vehicles | run_date |
-| Silver Crashes | crash_year |
-| Gold | dataset dependent |
-
----
-
-# Technologies Used
-
-- Python 3.10+
-- Pandas
-- PyArrow
-- Typer
-- Pytest
-- Socrata Open Data API
-- AWS S3
-- Boto3
-- Virtual Environment
-- Git
-- AI-assisted development
-
----
-
-# Future Improvements
-
-- Incremental ingestion strategy
-- Parallel Bronze ingestion
-- Data contracts enforcement
-- Metadata tracking
-- Pipeline orchestration (Airflow / Prefect)
-- Structured logging
-- CI/CD automation
-- Data catalog integration
-- Automated S3 lifecycle management
-- Data lake versioning
-- Glue catalog integration
-
----
-
-# Learning Objectives
-
-This project practices:
-
-- Data lake architecture
-- API-based ingestion pipelines
-- Modular pipeline design
-- Schema enforcement
-- Data quality frameworks
-- Partition strategies
-- CLI orchestration
-- Reproducible data pipelines
-- Cloud-based data lake architecture
-- AI-augmented development
-
----
-
-# 🇧🇷 Versão em Português
-
-## Visão Geral
-
-Este projeto implementa um pipeline de engenharia de dados modular utilizando os datasets **NYC Motor Vehicle Collisions**.
-
-A arquitetura segue o padrão:
-
-API NYC Open Data  
-↓  
-Bronze (dados brutos)  
-↓  
-Silver (dados limpos e validados)  
-↓  
-Gold (modelos analíticos)  
-↓  
-Data Lake no AWS S3
-
----
-
-## Camada API
-
-A pasta `api/` contém o cliente responsável por acessar a API do NYC Open Data.
-
-Essa camada:
-
-- encapsula a lógica de acesso à API  
-- evita acoplamento entre pipelines e serviços externos  
-- implementa paginação e filtros  
-- fornece dados brutos para a camada Bronze  
-
----
-
-## Camada Bronze
-
-Responsável por **extrair os dados da API e armazená-los sem transformação**.
-
-Os dados são armazenados em CSV no formato:
-
-```
-data/bronze/<dataset>/<variant>/
+```bash
+python -m cli.cli bronze run -d crashes --bucket my-bucket --prefix-root data_lake --profile default
+python -m cli.cli silver run -d vehicles --bucket my-bucket --profile default
+python -m cli.cli gold run --bucket my-bucket --profile default
 ```
 
-Exemplo:
+## AWS Glue Helpers
 
-```
-data/bronze/vehicles/full/vehicles_raw_20260303.csv
-```
+The repository also contains standalone Glue helper scripts under `api/aws/glue/`.
 
----
+Current files:
 
-## Camada Silver
+- `api/aws/glue/createDb.py`
+- `api/aws/glue/crawler/create/dim_vehicles.py`
+- `api/aws/glue/crawler/create/fact_crashes.py`
+- `api/aws/glue/crawler/run/dim_vehicles.py`
+- `api/aws/glue/crawler/run/fact_crashes.py`
 
-Realiza:
+Current characteristics:
 
-- validação de schema  
-- normalização de colunas  
-- validação de qualidade  
-- geração de métricas  
-- separação de dados inválidos  
+- They are not integrated into the main Typer CLI.
+- They use hard-coded defaults for region, database name, bucket paths, and crawler role.
+- They currently target the Gold S3 paths for `dim_vehicle` and `fact_crash`.
 
----
+## Notebooks
 
-## Camada Gold
+Exploration notebooks are kept under `notebooks/` and currently cover Bronze, Silver, and Gold exploration.
 
-Camada analítica com tabelas dimensionais e fatos.
+## Development Tooling
 
----
+`requirements-dev.txt` currently includes:
 
-## Integração com S3
+- `pytest`
+- `ruff`
+- `black`
+- `jupyterlab`
+- `ipykernel`
 
-Após a execução dos pipelines, os dados podem ser enviados automaticamente para o **AWS S3**, formando um **Data Lake na nuvem**.
+The repository also contains `pytest.ini`, but there is no committed `tests/` directory at the moment.
 
-Estrutura no S3:
+## Notes and Limitations
 
-```
-data_lake/
- ├── bronze/
- ├── silver/
- └── gold/
-```
-
----
-
-## Execução via CLI
-
-Bronze:
-
-```
-python -m cli.cli bronze run -d crashes
-```
-
-Silver:
-
-```
-python -m cli.cli silver run -d vehicles
-```
-
-Gold:
-
-```
-python -m cli.cli gold run
-```
-
----
-
-## Objetivos de Aprendizado
-
-- Arquitetura de Data Lake  
-- Pipelines baseados em API  
-- Validação de schema  
-- Estratégias de particionamento  
-- Execução reproduzível  
-- Arquitetura modular  
-- Engenharia de dados moderna  
-- Integração com Data Lake em nuvem  
+- `data/`, `out/`, notebook checkpoints, and virtual environments are gitignored.
+- The main supported interface is `python -m cli.cli`.
+- S3 upload depends on valid AWS credentials and optional profile configuration in the local environment.
